@@ -12,7 +12,7 @@ type View = { name: string; listingId?: string; threadId?: string }
 
 function AppInner() {
   const s = useStore()
-  const [view, setView] = useState<View>({ name: 'home' })
+  const [view, setView] = useState<View>(() => (typeof window !== 'undefined' && window.location.pathname === '/privacy') ? { name: 'privacy' } : { name: 'home' })
   const [query, setQuery] = useState('')
   const [brand, setBrand] = useState('All')
   const [condition, setCondition] = useState('All')
@@ -114,6 +114,7 @@ function AppInner() {
         {view.name === 'dashboard' && <Dashboard go={go} />}
         {view.name === 'messages' && <MessagesView threadId={view.threadId} go={go} />}
         {view.name === 'wishlist' && <WishlistView go={go} />}
+        {view.name === 'privacy' && <PrivacyView />}
         {view.name === 'owner' && <OwnerConsole />}
       </main>
 
@@ -121,7 +122,7 @@ function AppInner() {
         <div className="max-w-7xl mx-auto px-4 py-8 grid md:grid-cols-3 gap-6 text-sm">
           <div><div className="font-black">RESALE OUTLETS</div><p className="text-stone-500 mt-1">Peer-to-peer streetwear, sneaker & luxury resale. 8% platform fee. Escrow held until 3 days after delivery.</p></div>
           <div><div className="font-bold mb-2">Marketplace</div><button className="block text-stone-500" onClick={() => go({ name: 'sell' })}>Sell an item</button><button className="block text-stone-500" onClick={() => go({ name: 'home' })}>Browse</button></div>
-          <div><div className="font-bold mb-2">Trust</div><p className="text-stone-500">Verified Authentic = 5-photo authentication review before the badge is granted.</p></div>
+          <div><div className="font-bold mb-2">Trust</div><p className="text-stone-500">Verified Authentic = 5-photo authentication review before the badge is granted.</p><button className="block text-stone-500 mt-2 underline" onClick={() => go({ name: 'privacy' })}>Privacy Policy</button></div>
         </div>
         <div className="border-t border-stone-100 py-3 text-center">
           {/* Owner Console entry — intentionally unobtrusive, under the footer.
@@ -274,6 +275,21 @@ function AuthView({ go }: { go: (v: any) => void }) {
       <button onClick={() => setMode(mode === 'up' ? 'in' : 'up')} className="text-sm font-semibold mt-4 underline">
         {mode === 'up' ? 'Already have an account? Sign in' : 'New here? Create an account'}
       </button>
+    </div>
+  )
+}
+
+function PrivacyView() {
+  return (
+    <div className="max-w-3xl mx-auto bg-white border border-stone-200 rounded-3xl p-8 space-y-5 text-sm leading-relaxed text-stone-700">
+      <h1 className="text-3xl font-black text-stone-900">Privacy Policy</h1>
+      <p className="text-stone-500">Resale Outlets (resaleoutlets.com) — last updated November 21, 2026. Operated by Mason Sadler, Lamar, Missouri, USA. Contact: masonsadler055@gmail.com.</p>
+      <section><h2 className="font-black text-stone-900 mb-1">What we collect</h2><p>When you create an account we collect your email address and display name. If you sign in with Google, Google shares your name, email address, and profile picture with us. When you buy or sell, we store your listings, offers, orders, messages, wishlist, and any photos you submit for Verified Authentic review. Payment card details are collected and processed by Stripe — we never see or store your full card number.</p></section>
+      <section><h2 className="font-black text-stone-900 mb-1">How we use it</h2><p>We use your information only to run the marketplace: signing you in, showing your listings and profile to other users, processing orders and payouts, holding payments in escrow until 3 days after delivery, reviewing Verified Authentic submissions, preventing fraud and abuse, and sending sign-in codes and transactional emails.</p></section>
+      <section><h2 className="font-black text-stone-900 mb-1">Who we share it with</h2><p>We do not sell your personal information. We share data only with the service providers that make the marketplace work: Supabase (account and marketplace database hosting), Stripe (payments and seller payouts), Brevo (transactional and sign-in emails), Google (only if you choose Sign in with Google), and Netlify (website hosting). Your display name, listings, and profile are visible to other marketplace users.</p></section>
+      <section><h2 className="font-black text-stone-900 mb-1">Cookies and sessions</h2><p>We use essential cookies/local storage only to keep you signed in and remember your session. We do not use advertising trackers.</p></section>
+      <section><h2 className="font-black text-stone-900 mb-1">Your choices</h2><p>You can edit your display name and account type in your profile at any time. To request a copy or deletion of your account data, email masonsadler055@gmail.com and we will handle it within 30 days. Order records may be retained where required for payment, tax, or fraud-prevention purposes.</p></section>
+      <section><h2 className="font-black text-stone-900 mb-1">Security and changes</h2><p>Accounts are protected by Supabase authentication and encrypted connections (HTTPS). We may update this policy as the marketplace grows; material changes will be posted on this page with a new date.</p></section>
     </div>
   )
 }
