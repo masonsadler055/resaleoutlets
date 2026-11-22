@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Archivo", "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, sans-serif;
+  --color-verified: #10b981;
+}
+
+html { scroll-behavior: smooth; }
+body { background: #fafaf9; color: #0c0a09; font-family: var(--font-sans); }
