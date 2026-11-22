@@ -214,7 +214,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const startCheckout = useCallback(async (args: { kind: 'listing' | 'verification'; listingId?: string }) => {
     if (!supabase) return 'Payments are not connected on this device.'
     const { data, error } = await supabase.functions.invoke('create-checkout', { body: { listing_id: args.listingId, kind: args.kind, origin: window.location.origin } })
-    if (error) return 'Checkout could not be started — please try again.'
+    if (error) {
+      // Surface the function's real error (e.g. Stripe's own message) instead
+      // of a generic failure — it is the difference between a fixable config
+      // issue and a guessing game.
+      let msg = 'Checkout could not be started — please try again.'
+      try { const b = await (error as unknown as { context?: Response }).context?.json(); if (b?.error) msg = 'Checkout could not be started: ' + b.error } catch { /* keep generic */ }
+      return msg
+    }
     if (data?.error) return 'Checkout could not be started: ' + data.error
     if (data?.url) { window.location.href = data.url as string; return null }
     return 'Checkout could not be started — please try again.'
@@ -223,7 +230,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const confirmCheckout = useCallback(async (sessionId: string) => {
     if (!supabase) return { paid: false, error: 'Payments are not connected on this device.' }
     const { data, error } = await supabase.functions.invoke('verify-checkout', { body: { session_id: sessionId } })
-    if (error) return { paid: false, error: 'Payment confirmation failed — if you were charged, your order is still recorded by Stripe and we can reconcile it.' }
+    if (error) {
+      let msg = 'Payment confirmation failed — if you were charged, your order is still recorded by Stripe and we can reconcile it.'
+      try { const b = await (error as unknown as { context?: Response }).context?.json(); if (b?.error) msg = b.error } catch { /* keep generic */ }
+      return { paid: false, error: msg }
+    }
     if (data?.error) return { paid: false, error: data.error as string }
     await refresh()
     return { paid: Boolean(data?.paid), kind: data?.kind as string | undefined, listing_id: (data?.listing_id as string | null) ?? null }
