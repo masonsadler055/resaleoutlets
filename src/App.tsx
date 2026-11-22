@@ -390,9 +390,10 @@ function SellView({ go }: { go: (v: any) => void }) {
         photoUrls.push(u)
       }
     }
-    await s.addListing({ title: f.title, brand: f.brand, category: f.category, price: parseFloat(f.price) || 0, size: f.size, condition: f.condition, description: f.description, image_url: imageUrl },
+    const addErr = await s.addListing({ title: f.title, brand: f.brand, category: f.category, price: parseFloat(f.price) || 0, size: f.size, condition: f.condition, description: f.description, image_url: imageUrl },
       photoUrls)
     setUploading(false)
+    if (addErr) { setUploadErr(addErr); return }
     setDone(true)
   }
   if (done) return (
