@@ -38,74 +38,95 @@ function AppInner() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-stone-200">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
-          <button onClick={() => go({ name: 'home' })} className="text-left">
-            <div className="text-xl font-black tracking-tight leading-none">RESALE OUTLETS</div>
-            <div className="text-[11px] text-stone-500 tracking-widest">RESALEOUTLETS.COM</div>
+      <header className="sticky top-0 z-40 bg-[#fafaf9]/85 backdrop-blur-md border-b border-stone-200/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex items-center gap-3 md:gap-5">
+          <button onClick={() => go({ name: 'home' })} className="text-left shrink-0">
+            <div className="text-lg font-black tracking-[-0.02em] leading-none">RESALE OUTLETS</div>
+            <div className="text-[10px] font-semibold text-stone-400 tracking-[0.24em] mt-1">RESALEOUTLETS.COM</div>
           </button>
           <div className="flex-1 relative">
+            <svg className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.8-3.8" /></svg>
             <input value={query} onChange={e => { setQuery(e.target.value); if (view.name !== 'home') go({ name: 'home' }) }}
-              placeholder="Search sneakers, streetwear, luxury…" className="w-full border border-stone-300 rounded-full px-4 py-2 text-sm outline-none focus:border-stone-900" />
+              placeholder="Search sneakers, streetwear, luxury…" className="w-full bg-white border border-stone-200 rounded-full pl-10 pr-4 py-2 text-sm shadow-sm outline-none transition placeholder:text-stone-400 hover:border-stone-300 focus:border-stone-900 focus:ring-4 focus:ring-stone-900/5" />
             {query && (
-              <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-stone-200 rounded-xl shadow-lg max-h-72 overflow-auto">
+              <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-stone-200/80 rounded-2xl shadow-xl shadow-stone-900/5 py-1.5 max-h-72 overflow-auto">
                 {active.filter(l => (l.title + ' ' + l.brand).toLowerCase().includes(query.toLowerCase())).slice(0, 6).map(l => (
-                  <button key={l.id} onClick={() => go({ name: 'listing', listingId: l.id })} className="w-full text-left px-4 py-2 hover:bg-stone-50 text-sm flex justify-between">
-                    <span>{l.title}</span><span className="font-semibold">{money(l.price)}</span>
+                  <button key={l.id} onClick={() => go({ name: 'listing', listingId: l.id })} className="w-full text-left px-4 py-2 hover:bg-stone-50 transition text-sm flex justify-between gap-3">
+                    <span className="truncate">{l.title}</span><span className="font-bold shrink-0">{money(l.price)}</span>
                   </button>
                 ))}
                 {active.filter(l => (l.title + ' ' + l.brand).toLowerCase().includes(query.toLowerCase())).length === 0 && <div className="px-4 py-3 text-sm text-stone-500">No matches yet.</div>}
               </div>
             )}
           </div>
-          <nav className="flex items-center gap-3 text-sm font-semibold">
-            <button onClick={() => go({ name: 'sell' })} className="hover:underline">Sell</button>
+          <nav className="flex items-center gap-0.5 text-sm font-semibold shrink-0">
+            <button onClick={() => go({ name: 'sell' })} className="nav-link">Sell</button>
             {s.user ? <>
-              <button onClick={() => go({ name: 'dashboard' })} className="hover:underline">Dashboard</button>
-              <button onClick={() => go({ name: 'messages' })} className="hover:underline">Messages</button>
-              <button onClick={() => go({ name: 'wishlist' })} className="hover:underline">Wishlist</button>
-              <span className="text-stone-500 hidden md:inline">{s.user.display_name}</span>
-              <button onClick={() => s.signOut()} className="border border-stone-900 rounded-full px-3 py-1">Sign out</button>
-            </> : <button onClick={() => go({ name: 'auth' })} className="bg-stone-900 text-white rounded-full px-4 py-1.5">Sign in</button>}
+              <button onClick={() => go({ name: 'dashboard' })} className="nav-link">Dashboard</button>
+              <button onClick={() => go({ name: 'messages' })} className="nav-link">Messages</button>
+              <button onClick={() => go({ name: 'wishlist' })} className="nav-link">Wishlist</button>
+              <span className="text-stone-400 hidden lg:inline px-2">{s.user.display_name}</span>
+              <button onClick={() => s.signOut()} className="btn btn-outline px-3.5 py-1.5 text-sm ml-1">Sign out</button>
+            </> : <button onClick={() => go({ name: 'auth' })} className="btn btn-dark px-4 py-2 text-sm ml-1">Sign in</button>}
           </nav>
         </div>
       </header>
 
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-6">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 md:py-10">
         {view.name === 'home' && <>
-          <section className="bg-stone-900 text-white rounded-3xl px-8 py-12 mb-8">
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight max-w-2xl">Authenticated streetwear, sneakers & luxury — from real sellers.</h1>
-            <p className="text-stone-300 mt-3 max-w-xl">Every Verified Authentic piece passes a 5-photo authentication review. Payments are held in escrow until 3 days after delivery.</p>
+          <section className="relative overflow-hidden bg-stone-950 text-white rounded-[2rem] px-6 py-16 md:px-12 md:py-24 mb-12">
+            <div className="pointer-events-none absolute -top-32 -right-32 w-96 h-96 rounded-full bg-stone-800/50 blur-3xl" aria-hidden="true" />
+            <div className="pointer-events-none absolute -bottom-40 -left-24 w-80 h-80 rounded-full bg-stone-800/30 blur-3xl" aria-hidden="true" />
+            <div className="relative">
+              <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-stone-400">Resale Outlets — Peer-to-peer marketplace</div>
+              <h1 className="text-5xl md:text-6xl font-black tracking-[-0.03em] leading-[1.02] max-w-2xl mt-5">Authenticated streetwear, sneakers & luxury — from real sellers.</h1>
+              <p className="text-stone-400 text-base md:text-lg mt-5 max-w-xl leading-relaxed">Buy and sell sneakers, streetwear and designer pieces — peer to peer, from real sellers.</p>
+              <div className="flex flex-wrap gap-3 mt-9">
+                <a href="#brand-hubs" className="btn bg-white text-stone-950 px-6 py-3 text-sm hover:bg-stone-200">Browse brands</a>
+                <button onClick={() => go({ name: 'sell' })} className="btn border border-white/25 text-white px-6 py-3 text-sm hover:border-white hover:bg-white/5">Sell an item</button>
+              </div>
+            </div>
           </section>
 
-          <h2 className="font-black text-lg mb-3">Brand hubs</h2>
-          <div className="flex flex-wrap gap-2 mb-8">
+          <div id="brand-hubs" className="eyebrow mb-2 scroll-mt-24">Browse</div>
+          <h2 className="text-xl font-black tracking-tight mb-4">Brand hubs</h2>
+          <div className="flex flex-wrap gap-2 mb-10">
             {['All', ...BRANDS].map(b => (
-              <button key={b} onClick={() => setBrand(b)} className={`rounded-full px-4 py-1.5 text-sm font-semibold border ${brand === b ? 'bg-stone-900 text-white border-stone-900' : 'border-stone-300 bg-white'}`}>{b}</button>
+              <button key={b} onClick={() => setBrand(b)} className={`rounded-full px-4 py-2 text-sm font-semibold border shadow-sm transition ${brand === b ? 'bg-stone-900 text-white border-stone-900' : 'border-stone-200 bg-white hover:border-stone-900'}`}>{b}</button>
             ))}
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 mb-5">
-            <select value={condition} onChange={e => setCondition(e.target.value)} className="border border-stone-300 rounded-full px-3 py-1.5 text-sm bg-white">
+          <div className="flex flex-wrap items-center gap-3 mb-6">
+            <select value={condition} onChange={e => setCondition(e.target.value)} className="field field-pill w-auto">
               <option value="All">All conditions</option>{CONDITIONS.map(c => <option key={c}>{c}</option>)}
             </select>
-            <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={verifiedOnly} onChange={e => setVerifiedOnly(e.target.checked)} /> Verified Authentic only</label>
-            <select value={sort} onChange={e => setSort(e.target.value)} className="border border-stone-300 rounded-full px-3 py-1.5 text-sm bg-white ml-auto">
+            <label className="flex items-center gap-2 text-sm font-semibold text-stone-600 cursor-pointer"><input type="checkbox" checked={verifiedOnly} onChange={e => setVerifiedOnly(e.target.checked)} className="accent-stone-900 w-4 h-4" /> Verified Authentic only</label>
+            <select value={sort} onChange={e => setSort(e.target.value)} className="field field-pill w-auto ml-auto">
               <option value="newest">Newest first</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option>
             </select>
           </div>
 
           {results.length === 0 ? (
-            <div className="border border-dashed border-stone-300 rounded-3xl py-20 text-center">
-              <div className="font-black text-2xl mb-2">The marketplace is open — be the first to list.</div>
-              <p className="text-stone-500 mb-5">No listings match yet. New pieces from sellers will appear here.</p>
-              <button onClick={() => go({ name: 'sell' })} className="bg-stone-900 text-white rounded-full px-6 py-2.5 font-semibold">List an item</button>
+            <div className="border border-dashed border-stone-300 rounded-[2rem] bg-white/60 py-24 px-6 text-center">
+              <div className="eyebrow mb-3">Just opened</div>
+              <div className="font-black text-3xl tracking-tight mb-2.5">The marketplace is open — be the first to list.</div>
+              <p className="text-stone-500 mb-6">No listings match yet. New pieces from sellers will appear here.</p>
+              <button onClick={() => go({ name: 'sell' })} className="btn btn-dark px-6 py-2.5">List an item</button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {results.map(l => <ListingCard key={l.id} l={l} onOpen={() => go({ name: 'listing', listingId: l.id })} />)}
             </div>
           )}
+
+          <section className="border-t border-stone-200 mt-16 pt-8 pb-2">
+            <div className="eyebrow mb-4">How Resale Outlets works</div>
+            <div className="grid sm:grid-cols-3 gap-x-10 gap-y-5 text-sm leading-relaxed text-stone-500 max-w-4xl">
+              <p><span className="font-semibold text-stone-700">Verified Authentic.</span> Every Verified Authentic piece passes a 5-photo authentication review.</p>
+              <p><span className="font-semibold text-stone-700">Escrow protection.</span> Payments are held in escrow until 3 days after delivery.</p>
+              <p><span className="font-semibold text-stone-700">Simple pricing.</span> 8% platform fee — sellers keep the rest.</p>
+            </div>
+          </section>
         </>}
 
         {view.name === 'listing' && <ListingDetail id={view.listingId!} go={go} />}
@@ -118,11 +139,15 @@ function AppInner() {
         {view.name === 'owner' && <OwnerConsole />}
       </main>
 
-      <footer className="border-t border-stone-200 bg-white">
-        <div className="max-w-7xl mx-auto px-4 py-8 grid md:grid-cols-3 gap-6 text-sm">
-          <div><div className="font-black">RESALE OUTLETS</div><p className="text-stone-500 mt-1">Peer-to-peer streetwear, sneaker & luxury resale. 8% platform fee. Escrow held until 3 days after delivery.</p></div>
-          <div><div className="font-bold mb-2">Marketplace</div><button className="block text-stone-500" onClick={() => go({ name: 'sell' })}>Sell an item</button><button className="block text-stone-500" onClick={() => go({ name: 'home' })}>Browse</button></div>
-          <div><div className="font-bold mb-2">Trust</div><p className="text-stone-500">Verified Authentic = 5-photo authentication review before the badge is granted.</p><button className="block text-stone-500 mt-2 underline" onClick={() => go({ name: 'privacy' })}>Privacy Policy</button></div>
+      <footer className="border-t border-stone-200 bg-white mt-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 grid md:grid-cols-3 gap-10 text-sm">
+          <div>
+            <div className="text-base font-black tracking-[-0.02em]">RESALE OUTLETS</div>
+            <div className="text-[10px] font-semibold text-stone-400 tracking-[0.24em] mt-1 mb-3">RESALEOUTLETS.COM</div>
+            <p className="text-stone-500 leading-relaxed">Peer-to-peer streetwear, sneaker & luxury resale. 8% platform fee. Escrow held until 3 days after delivery.</p>
+          </div>
+          <div><div className="eyebrow mb-3">Marketplace</div><button className="block text-stone-500 hover:text-stone-950 transition py-0.5" onClick={() => go({ name: 'sell' })}>Sell an item</button><button className="block text-stone-500 hover:text-stone-950 transition py-0.5" onClick={() => go({ name: 'home' })}>Browse</button></div>
+          <div><div className="eyebrow mb-3">Trust</div><p className="text-stone-500 leading-relaxed">Verified Authentic = 5-photo authentication review before the badge is granted.</p><button className="block text-stone-500 hover:text-stone-950 transition mt-2 underline underline-offset-4" onClick={() => go({ name: 'privacy' })}>Privacy Policy</button></div>
         </div>
         <div className="border-t border-stone-100 py-3 text-center">
           {/* Owner Console entry — intentionally unobtrusive, under the footer.
@@ -142,20 +167,22 @@ function ListingCard({ l, onOpen }: { l: Listing; onOpen: () => void }) {
   const s = useStore()
   const wished = s.wishlist.some(w => w.listing_id === l.id && w.user && w.user_id === s.user.id)
   return (
-    <div className="bg-white border border-stone-200 rounded-2xl overflow-hidden group">
+    <div className="bg-white border border-stone-200/90 rounded-3xl overflow-hidden shadow-sm transition duration-300 hover:shadow-lg hover:shadow-stone-900/5 hover:-translate-y-0.5 hover:border-stone-300 group">
       <button onClick={onOpen} className="block w-full text-left">
-        <div className="aspect-square bg-stone-100 flex items-center justify-center overflow-hidden">
-          {l.image_url ? <img src={l.image_url} alt={l.title} className="w-full h-full object-cover group-hover:scale-105 transition" /> : <span className="text-stone-400 text-sm px-4 text-center">{l.brand}</span>}
+        <div className="aspect-[4/5] bg-stone-100 flex items-center justify-center overflow-hidden">
+          {l.image_url ? <img src={l.image_url} alt={l.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" /> : <span className="font-black uppercase tracking-[-0.01em] text-stone-300 text-xl px-4 text-center leading-tight">{l.brand}</span>}
         </div>
-        <div className="p-3">
-          <div className="text-xs uppercase tracking-widest text-stone-500">{l.brand}</div>
-          <div className="font-semibold leading-snug line-clamp-2">{l.title}</div>
-          <div className="text-sm text-stone-500">{l.condition} · Size {l.size}</div>
-          {l.verified && <VerifiedBadge />}
-          <div className="font-black mt-1">{money(l.price)}</div>
+        <div className="p-4">
+          <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-stone-400">{l.brand}</div>
+          <div className="font-medium leading-snug line-clamp-2 mt-1.5">{l.title}</div>
+          <div className="text-[13px] text-stone-500 mt-1">{l.condition} · Size {l.size}</div>
+          <div className="flex items-end justify-between gap-2 mt-2.5">
+            <div className="text-lg font-black tracking-tight leading-none">{money(l.price)}</div>
+            {l.verified && <VerifiedBadge />}
+          </div>
         </div>
       </button>
-      {s.user && <button onClick={() => s.toggleWishlist(l.id)} className="mx-3 mb-3 text-xs font-semibold border border-stone-300 rounded-full px-3 py-1">{wished ? '♥ Saved' : '♡ Save'}</button>}
+      {s.user && <button onClick={() => s.toggleWishlist(l.id)} className="mx-4 mb-4 text-xs font-semibold border border-stone-200 rounded-full px-3.5 py-1.5 transition hover:border-stone-900">{wished ? '♥ Saved' : '♡ Save'}</button>}
     </div>
   )
 }
@@ -184,30 +211,30 @@ function ListingDetail({ id, go }: { id: string; go: (v: any) => void }) {
   }
 
   return (
-    <div className="grid md:grid-cols-2 gap-8">
-      <div className="bg-stone-100 rounded-3xl aspect-square flex items-center justify-center overflow-hidden">
-        {l.image_url ? <img src={l.image_url} alt={l.title} className="w-full h-full object-cover" /> : <span className="text-stone-400">{l.brand}</span>}
+    <div className="grid md:grid-cols-2 gap-10 md:gap-14">
+      <div className="bg-stone-100 border border-stone-200/60 rounded-[2rem] aspect-square flex items-center justify-center overflow-hidden">
+        {l.image_url ? <img src={l.image_url} alt={l.title} className="w-full h-full object-cover" /> : <span className="font-black uppercase tracking-[-0.01em] text-stone-300 text-3xl px-6 text-center leading-tight">{l.brand}</span>}
       </div>
-      <div>
-        <div className="text-xs uppercase tracking-widest text-stone-500">{l.brand} · {l.category}</div>
-        <h1 className="text-3xl font-black mt-1">{l.title}</h1>
-        {l.verified && <div className="mt-2"><VerifiedBadge /></div>}
-        <div className="text-stone-500 mt-2">{l.condition} · Size {l.size} · Sold by {l.seller_name}</div>
-        <div className="text-4xl font-black mt-4">{money(l.price)}</div>
-        <p className="mt-4 text-stone-700 whitespace-pre-wrap">{l.description}</p>
-        {l.status !== 'active' && <div className="mt-4 font-bold text-red-700">This item has sold.</div>}
+      <div className="md:py-2">
+        <div className="eyebrow">{l.brand} · {l.category}</div>
+        <h1 className="text-4xl font-black tracking-[-0.02em] leading-[1.05] mt-2.5">{l.title}</h1>
+        {l.verified && <div className="mt-3"><VerifiedBadge /></div>}
+        <div className="text-stone-500 mt-3">{l.condition} · Size {l.size} · Sold by {l.seller_name}</div>
+        <div className="text-4xl font-black tracking-tight mt-6">{money(l.price)}</div>
+        <p className="mt-5 text-stone-600 leading-relaxed whitespace-pre-wrap">{l.description}</p>
+        {l.status !== 'active' && <div className="mt-5 font-bold text-red-700">This item has sold.</div>}
         {l.status === 'active' && s.user?.id !== l.seller_id && (
-          <div className="mt-6 space-y-3">
-            <button onClick={handleBuy} className="w-full bg-stone-900 text-white rounded-full py-3 font-bold">Buy Now</button>
+          <div className="mt-8 space-y-3">
+            <button onClick={handleBuy} className="btn btn-dark w-full py-3.5 font-bold">Buy Now</button>
             <div className="flex gap-2">
-              <input value={offer} onChange={e => setOffer(e.target.value)} type="number" min="1" placeholder="Your offer ($)" className="flex-1 border border-stone-300 rounded-full px-4 py-2.5" />
-              <button onClick={handleOffer} className="border border-stone-900 rounded-full px-5 font-bold">Make Offer</button>
+              <input value={offer} onChange={e => setOffer(e.target.value)} type="number" min="1" placeholder="Your offer ($)" className="field field-pill flex-1" />
+              <button onClick={handleOffer} className="btn btn-outline px-6 font-bold">Make Offer</button>
             </div>
-            <button onClick={handleMessage} className="w-full border border-stone-300 rounded-full py-2.5 font-semibold">Message Seller</button>
+            <button onClick={handleMessage} className="btn btn-outline w-full py-3">Message Seller</button>
           </div>
         )}
-        {notice && <div className="mt-4 bg-stone-100 border border-stone-200 rounded-2xl px-4 py-3 text-sm">{notice}</div>}
-        <p className="text-xs text-stone-400 mt-4">Buyer protection: payment is held in escrow and released to the seller 3 days after delivery is confirmed.</p>
+        {notice && <div className="mt-5 bg-stone-50 border border-stone-200 rounded-2xl shadow-sm px-4 py-3.5 text-sm leading-relaxed">{notice}</div>}
+        <p className="text-xs text-stone-400 leading-relaxed border-t border-stone-200 mt-7 pt-4">Buyer protection: payment is held in escrow and released to the seller 3 days after delivery is confirmed.</p>
       </div>
     </div>
   )
@@ -240,39 +267,39 @@ function AuthView({ go }: { go: (v: any) => void }) {
     if (r) setErr(r); else go({ name: 'home' })
   }
   return (
-    <div className="max-w-md mx-auto bg-white border border-stone-200 rounded-3xl p-8">
-      <h1 className="text-2xl font-black mb-1">{mode === 'up' ? 'Create your account' : 'Welcome back'}</h1>
-      <p className="text-sm text-stone-500 mb-6">Buy, sell, or both — one account.</p>
-      <button onClick={() => s.signInWithGoogle()} className="w-full border border-stone-300 rounded-full py-2.5 font-semibold mb-3 bg-white">
+    <div className="card max-w-md mx-auto rounded-[2rem] p-8 md:p-10">
+      <h1 className="text-[28px] font-black tracking-tight leading-tight mb-1.5">{mode === 'up' ? 'Create your account' : 'Welcome back'}</h1>
+      <p className="text-sm text-stone-500 mb-7">Buy, sell, or both — one account.</p>
+      <button onClick={() => s.signInWithGoogle()} className="btn btn-outline w-full py-3 mb-3">
         <span className="font-black mr-2">G</span> Continue with Google
       </button>
       {!isSupabaseConfigured && <p className="text-xs text-stone-400 mb-3">Google sign-in activates when the site is connected to its live accounts backend.</p>}
-      <div className="flex items-center gap-3 my-4"><div className="flex-1 border-t border-stone-200" /><span className="text-xs text-stone-400">OR</span><div className="flex-1 border-t border-stone-200" /></div>
+      <div className="flex items-center gap-3 my-5"><div className="flex-1 border-t border-stone-200" /><span className="text-[11px] font-bold tracking-[0.18em] text-stone-400">OR</span><div className="flex-1 border-t border-stone-200" /></div>
       <form onSubmit={submit} className="space-y-3">
         {mode === 'up' && <>
-          <input required value={name} onChange={e => setName(e.target.value)} placeholder="Display name" className="w-full border border-stone-300 rounded-xl px-4 py-2.5" />
-          <select value={type} onChange={e => setType(e.target.value as AccountType)} className="w-full border border-stone-300 rounded-xl px-4 py-2.5 bg-white">
+          <input required value={name} onChange={e => setName(e.target.value)} placeholder="Display name" className="field" />
+          <select value={type} onChange={e => setType(e.target.value as AccountType)} className="field">
             <option value="buyer">Buyer</option><option value="seller">Seller</option><option value="both">Buyer & Seller</option>
           </select>
         </>}
-        <input required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" className="w-full border border-stone-300 rounded-xl px-4 py-2.5" />
-        <input required type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" className="w-full border border-stone-300 rounded-xl px-4 py-2.5" />
+        <input required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" className="field" />
+        <input required type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" className="field" />
         {err && <div className="text-sm text-red-700">{err}</div>}
-        <button className="w-full bg-stone-900 text-white rounded-full py-3 font-bold">{mode === 'up' ? 'Sign up' : 'Sign in'}</button>
+        <button className="btn btn-dark w-full py-3 font-bold">{mode === 'up' ? 'Sign up' : 'Sign in'}</button>
       </form>
-      <div className="flex items-center gap-3 my-4"><div className="flex-1 border-t border-stone-200" /><span className="text-xs text-stone-400">OR USE AN EMAIL CODE — NO PASSWORD</span><div className="flex-1 border-t border-stone-200" /></div>
+      <div className="flex items-center gap-3 my-5"><div className="flex-1 border-t border-stone-200" /><span className="text-[11px] font-bold tracking-[0.14em] text-stone-400">OR USE AN EMAIL CODE — NO PASSWORD</span><div className="flex-1 border-t border-stone-200" /></div>
       <div className="space-y-3">
-        <p className="text-sm text-stone-500">Enter your email above, we'll send a 6-digit sign-in code. New emails get an account automatically.</p>
-        <button onClick={sendCode} className="w-full border border-stone-900 rounded-full py-2.5 font-semibold">Email me a sign-in code</button>
+        <p className="text-sm text-stone-500 leading-relaxed">Enter your email above, we'll send a 6-digit sign-in code. New emails get an account automatically.</p>
+        <button onClick={sendCode} className="btn btn-outline w-full py-3">Email me a sign-in code</button>
         {codeMsg && <div className="text-sm text-stone-600">{codeMsg}</div>}
-        {localCode && <div className="text-center text-2xl font-black tracking-[0.3em] bg-stone-100 rounded-xl py-2">{localCode}</div>}
+        {localCode && <div className="text-center text-2xl font-black tracking-[0.35em] bg-stone-950 text-white rounded-2xl py-3">{localCode}</div>}
         {codeSent && <>
-          <input value={code} onChange={e => setCode(e.target.value)} placeholder="6-digit code" inputMode="numeric" className="w-full border border-stone-300 rounded-xl px-4 py-2.5 tracking-widest" />
-          <button onClick={verifyCode} className="w-full bg-stone-900 text-white rounded-full py-3 font-bold">Verify code & sign in</button>
+          <input value={code} onChange={e => setCode(e.target.value)} placeholder="6-digit code" inputMode="numeric" className="field tracking-[0.3em]" />
+          <button onClick={verifyCode} className="btn btn-dark w-full py-3 font-bold">Verify code & sign in</button>
         </>}
         {codeErr && <div className="text-sm text-red-700">{codeErr}</div>}
       </div>
-      <button onClick={() => setMode(mode === 'up' ? 'in' : 'up')} className="text-sm font-semibold mt-4 underline">
+      <button onClick={() => setMode(mode === 'up' ? 'in' : 'up')} className="text-sm font-semibold mt-5 underline underline-offset-4 hover:text-stone-500 transition">
         {mode === 'up' ? 'Already have an account? Sign in' : 'New here? Create an account'}
       </button>
     </div>
@@ -281,15 +308,15 @@ function AuthView({ go }: { go: (v: any) => void }) {
 
 function PrivacyView() {
   return (
-    <div className="max-w-3xl mx-auto bg-white border border-stone-200 rounded-3xl p-8 space-y-5 text-sm leading-relaxed text-stone-700">
-      <h1 className="text-3xl font-black text-stone-900">Privacy Policy</h1>
+    <div className="card max-w-3xl mx-auto rounded-[2rem] p-8 md:p-12 space-y-6 text-sm leading-relaxed text-stone-600">
+      <h1 className="text-4xl font-black tracking-tight text-stone-950">Privacy Policy</h1>
       <p className="text-stone-500">Resale Outlets (resaleoutlets.com) — last updated November 21, 2026. Operated by Mason Sadler, Lamar, Missouri, USA. Contact: masonsadler055@gmail.com.</p>
-      <section><h2 className="font-black text-stone-900 mb-1">What we collect</h2><p>When you create an account we collect your email address and display name. If you sign in with Google, Google shares your name, email address, and profile picture with us. When you buy or sell, we store your listings, offers, orders, messages, wishlist, and any photos you submit for Verified Authentic review. Payment card details are collected and processed by Stripe — we never see or store your full card number.</p></section>
-      <section><h2 className="font-black text-stone-900 mb-1">How we use it</h2><p>We use your information only to run the marketplace: signing you in, showing your listings and profile to other users, processing orders and payouts, holding payments in escrow until 3 days after delivery, reviewing Verified Authentic submissions, preventing fraud and abuse, and sending sign-in codes and transactional emails.</p></section>
-      <section><h2 className="font-black text-stone-900 mb-1">Who we share it with</h2><p>We do not sell your personal information. We share data only with the service providers that make the marketplace work: Supabase (account and marketplace database hosting), Stripe (payments and seller payouts), Brevo (transactional and sign-in emails), Google (only if you choose Sign in with Google), and Netlify (website hosting). Your display name, listings, and profile are visible to other marketplace users.</p></section>
-      <section><h2 className="font-black text-stone-900 mb-1">Cookies and sessions</h2><p>We use essential cookies/local storage only to keep you signed in and remember your session. We do not use advertising trackers.</p></section>
-      <section><h2 className="font-black text-stone-900 mb-1">Your choices</h2><p>You can edit your display name and account type in your profile at any time. To request a copy or deletion of your account data, email masonsadler055@gmail.com and we will handle it within 30 days. Order records may be retained where required for payment, tax, or fraud-prevention purposes.</p></section>
-      <section><h2 className="font-black text-stone-900 mb-1">Security and changes</h2><p>Accounts are protected by Supabase authentication and encrypted connections (HTTPS). We may update this policy as the marketplace grows; material changes will be posted on this page with a new date.</p></section>
+      <section><h2 className="font-black tracking-tight text-stone-950 text-base mb-1.5">What we collect</h2><p>When you create an account we collect your email address and display name. If you sign in with Google, Google shares your name, email address, and profile picture with us. When you buy or sell, we store your listings, offers, orders, messages, wishlist, and any photos you submit for Verified Authentic review. Payment card details are collected and processed by Stripe — we never see or store your full card number.</p></section>
+      <section><h2 className="font-black tracking-tight text-stone-950 text-base mb-1.5">How we use it</h2><p>We use your information only to run the marketplace: signing you in, showing your listings and profile to other users, processing orders and payouts, holding payments in escrow until 3 days after delivery, reviewing Verified Authentic submissions, preventing fraud and abuse, and sending sign-in codes and transactional emails.</p></section>
+      <section><h2 className="font-black tracking-tight text-stone-950 text-base mb-1.5">Who we share it with</h2><p>We do not sell your personal information. We share data only with the service providers that make the marketplace work: Supabase (account and marketplace database hosting), Stripe (payments and seller payouts), Brevo (transactional and sign-in emails), Google (only if you choose Sign in with Google), and Netlify (website hosting). Your display name, listings, and profile are visible to other marketplace users.</p></section>
+      <section><h2 className="font-black tracking-tight text-stone-950 text-base mb-1.5">Cookies and sessions</h2><p>We use essential cookies/local storage only to keep you signed in and remember your session. We do not use advertising trackers.</p></section>
+      <section><h2 className="font-black tracking-tight text-stone-950 text-base mb-1.5">Your choices</h2><p>You can edit your display name and account type in your profile at any time. To request a copy or deletion of your account data, email masonsadler055@gmail.com and we will handle it within 30 days. Order records may be retained where required for payment, tax, or fraud-prevention purposes.</p></section>
+      <section><h2 className="font-black tracking-tight text-stone-950 text-base mb-1.5">Security and changes</h2><p>Accounts are protected by Supabase authentication and encrypted connections (HTTPS). We may update this policy as the marketplace grows; material changes will be posted on this page with a new date.</p></section>
     </div>
   )
 }
@@ -301,10 +328,11 @@ function SellView({ go }: { go: (v: any) => void }) {
   const [photos, setPhotos] = useState<string[]>(PHOTO_CHECKLIST.map(() => ''))
   const [done, setDone] = useState(false)
   if (!s.user) return (
-    <div className="max-w-md mx-auto text-center py-16">
-      <h1 className="text-2xl font-black mb-2">Sign in to sell</h1>
-      <p className="text-stone-500 mb-5">You need an account so buyers can pay you and message you.</p>
-      <button onClick={() => go({ name: 'auth' })} className="bg-stone-900 text-white rounded-full px-6 py-2.5 font-semibold">Sign in</button>
+    <div className="max-w-md mx-auto text-center py-20">
+      <div className="eyebrow mb-3">Sell</div>
+      <h1 className="text-3xl font-black tracking-tight mb-2.5">Sign in to sell</h1>
+      <p className="text-stone-500 mb-6">You need an account so buyers can pay you and message you.</p>
+      <button onClick={() => go({ name: 'auth' })} className="btn btn-dark px-6 py-2.5">Sign in</button>
     </div>
   )
   const submit = async (e: React.FormEvent) => {
@@ -314,43 +342,47 @@ function SellView({ go }: { go: (v: any) => void }) {
     setDone(true)
   }
   if (done) return (
-    <div className="max-w-md mx-auto text-center py-16">
-      <h1 className="text-2xl font-black mb-2">Listing published</h1>
-      <p className="text-stone-500 mb-5">{wantVerified ? 'Your Verified Authentic request ($5) is in the review queue — the badge appears once approved.' : 'Your item is live on the marketplace.'}</p>
-      <button onClick={() => go({ name: 'home' })} className="bg-stone-900 text-white rounded-full px-6 py-2.5 font-semibold">View marketplace</button>
+    <div className="max-w-md mx-auto text-center py-20">
+      <div className="eyebrow mb-3">Done</div>
+      <h1 className="text-3xl font-black tracking-tight mb-2.5">Listing published</h1>
+      <p className="text-stone-500 mb-6">{wantVerified ? 'Your Verified Authentic request ($5) is in the review queue — the badge appears once approved.' : 'Your item is live on the marketplace.'}</p>
+      <button onClick={() => go({ name: 'home' })} className="btn btn-dark px-6 py-2.5">View marketplace</button>
     </div>
   )
   const set = (k: string, v: string) => setF(prev => ({ ...prev, [k]: v }))
   return (
-    <form onSubmit={submit} className="max-w-2xl mx-auto bg-white border border-stone-200 rounded-3xl p-8 space-y-4">
-      <h1 className="text-2xl font-black">Sell an item</h1>
-      <input required value={f.title} onChange={e => set('title', e.target.value)} placeholder="Title — e.g. Air Jordan 1 Retro High OG 'Chicago'" className="w-full border border-stone-300 rounded-xl px-4 py-2.5" />
+    <form onSubmit={submit} className="card max-w-2xl mx-auto rounded-[2rem] p-8 md:p-10 space-y-4">
+      <div>
+        <div className="eyebrow mb-2">Sell</div>
+        <h1 className="text-[28px] font-black tracking-tight leading-tight">Sell an item</h1>
+      </div>
+      <input required value={f.title} onChange={e => set('title', e.target.value)} placeholder="Title — e.g. Air Jordan 1 Retro High OG 'Chicago'" className="field" />
       <div className="grid grid-cols-2 gap-3">
-        <select value={f.brand} onChange={e => set('brand', e.target.value)} className="border border-stone-300 rounded-xl px-4 py-2.5 bg-white">{BRANDS.map(b => <option key={b}>{b}</option>)}</select>
-        <select value={f.category} onChange={e => set('category', e.target.value)} className="border border-stone-300 rounded-xl px-4 py-2.5 bg-white">
+        <select value={f.brand} onChange={e => set('brand', e.target.value)} className="field">{BRANDS.map(b => <option key={b}>{b}</option>)}</select>
+        <select value={f.category} onChange={e => set('category', e.target.value)} className="field">
           {['Sneakers', 'Streetwear', 'Watches', 'Bags', 'Accessories', 'Designer Luxury'].map(c => <option key={c}>{c}</option>)}
         </select>
-        <input required type="number" min="1" value={f.price} onChange={e => set('price', e.target.value)} placeholder="Price ($)" className="border border-stone-300 rounded-xl px-4 py-2.5" />
-        <input required value={f.size} onChange={e => set('size', e.target.value)} placeholder="Size" className="border border-stone-300 rounded-xl px-4 py-2.5" />
-        <select value={f.condition} onChange={e => set('condition', e.target.value)} className="border border-stone-300 rounded-xl px-4 py-2.5 bg-white">{CONDITIONS.map(c => <option key={c}>{c}</option>)}</select>
-        <input value={f.image_url} onChange={e => set('image_url', e.target.value)} placeholder="Photo URL (optional)" className="border border-stone-300 rounded-xl px-4 py-2.5" />
+        <input required type="number" min="1" value={f.price} onChange={e => set('price', e.target.value)} placeholder="Price ($)" className="field" />
+        <input required value={f.size} onChange={e => set('size', e.target.value)} placeholder="Size" className="field" />
+        <select value={f.condition} onChange={e => set('condition', e.target.value)} className="field">{CONDITIONS.map(c => <option key={c}>{c}</option>)}</select>
+        <input value={f.image_url} onChange={e => set('image_url', e.target.value)} placeholder="Photo URL (optional)" className="field" />
       </div>
-      <textarea required value={f.description} onChange={e => set('description', e.target.value)} placeholder="Description — condition details, flaws, box/accessories included…" rows={4} className="w-full border border-stone-300 rounded-xl px-4 py-2.5" />
-      <div className="border border-stone-200 rounded-2xl p-4">
-        <label className="flex items-start gap-3 font-semibold">
-          <input type="checkbox" checked={wantVerified} onChange={e => setWantVerified(e.target.checked)} className="mt-1" />
-          <span>Add <span style={{ color: '#10B981' }}>Verified Authentic</span> upgrade — $5<br /><span className="text-sm font-normal text-stone-500">Submit the 5 authentication photos below. A reviewer checks them before the badge goes live.</span></span>
+      <textarea required value={f.description} onChange={e => set('description', e.target.value)} placeholder="Description — condition details, flaws, box/accessories included…" rows={4} className="field resize-none" />
+      <div className="bg-stone-50 border border-stone-200 rounded-3xl p-5">
+        <label className="flex items-start gap-3 font-semibold cursor-pointer">
+          <input type="checkbox" checked={wantVerified} onChange={e => setWantVerified(e.target.checked)} className="mt-1 accent-stone-900" />
+          <span>Add <span style={{ color: '#10B981' }}>Verified Authentic</span> upgrade — $5<br /><span className="text-sm font-normal text-stone-500 leading-relaxed">Submit the 5 authentication photos below. A reviewer checks them before the badge goes live.</span></span>
         </label>
         {wantVerified && <div className="mt-4 space-y-2">
           {PHOTO_CHECKLIST.map((label, i) => (
             <div key={label} className="flex items-center gap-3">
-              <span className="text-sm w-48">{i + 1}. {label}</span>
-              <input value={photos[i]} onChange={e => { const p = [...photos]; p[i] = e.target.value; setPhotos(p) }} placeholder="Photo URL" className="flex-1 border border-stone-300 rounded-xl px-3 py-1.5 text-sm" />
+              <span className="text-sm w-48 shrink-0">{i + 1}. {label}</span>
+              <input value={photos[i]} onChange={e => { const p = [...photos]; p[i] = e.target.value; setPhotos(p) }} placeholder="Photo URL" className="field flex-1" />
             </div>
           ))}
         </div>}
       </div>
-      <button className="w-full bg-stone-900 text-white rounded-full py-3 font-bold">Publish listing</button>
+      <button className="btn btn-dark w-full py-3.5 font-bold">Publish listing</button>
     </form>
   )
 }
@@ -364,20 +396,20 @@ function ProfileSection() {
   const purchases = s.orders.filter(o => o.buyer_id === s.user!.id).length
   const sales = s.orders.filter(o => o.seller_id === s.user!.id).length
   return (
-    <section className="bg-white border border-stone-200 rounded-3xl p-6">
-      <h2 className="font-black mb-1">Your profile</h2>
-      <p className="text-sm text-stone-500 mb-4">Every account has a profile — buyers too. This is the name other users see on your offers, messages and listings.</p>
+    <section className="card p-6 md:p-7">
+      <h2 className="font-black tracking-tight text-lg mb-1">Your profile</h2>
+      <p className="text-sm text-stone-500 leading-relaxed mb-5">Every account has a profile — buyers too. This is the name other users see on your offers, messages and listings.</p>
       <div className="grid md:grid-cols-2 gap-4 text-sm">
-        <div><div className="text-xs uppercase tracking-widest text-stone-500 mb-1">Email</div><div className="font-semibold">{s.user.email}</div></div>
-        <div><div className="text-xs uppercase tracking-widest text-stone-500 mb-1">Activity</div><div className="font-semibold">{purchases} purchase{purchases === 1 ? '' : 's'} · {sales} sale{sales === 1 ? '' : 's'}</div></div>
-        <label className="block"><span className="text-xs uppercase tracking-widest text-stone-500 block mb-1">Display name</span>
-          <input value={name} onChange={e => { setName(e.target.value); setSaved(false) }} className="w-full border border-stone-300 rounded-xl px-3 py-2" /></label>
-        <label className="block"><span className="text-xs uppercase tracking-widest text-stone-500 block mb-1">Account type</span>
-          <select value={type} onChange={e => { setType(e.target.value as any); setSaved(false) }} className="w-full border border-stone-300 rounded-xl px-3 py-2 bg-white">
+        <div><div className="eyebrow mb-1.5">Email</div><div className="font-semibold">{s.user.email}</div></div>
+        <div><div className="eyebrow mb-1.5">Activity</div><div className="font-semibold">{purchases} purchase{purchases === 1 ? '' : 's'} · {sales} sale{sales === 1 ? '' : 's'}</div></div>
+        <label className="block"><span className="eyebrow block mb-1.5">Display name</span>
+          <input value={name} onChange={e => { setName(e.target.value); setSaved(false) }} className="field" /></label>
+        <label className="block"><span className="eyebrow block mb-1.5">Account type</span>
+          <select value={type} onChange={e => { setType(e.target.value as any); setSaved(false) }} className="field">
             <option value="buyer">Buyer</option><option value="seller">Seller</option><option value="both">Buyer & seller</option>
           </select></label>
       </div>
-      <button onClick={async () => { await s.updateProfile(name.trim() || s.user!.display_name, type as any); setSaved(true) }} className="mt-4 bg-stone-900 text-white rounded-full px-5 py-2 text-sm font-semibold">Save profile</button>
+      <button onClick={async () => { await s.updateProfile(name.trim() || s.user!.display_name, type as any); setSaved(true) }} className="btn btn-dark mt-5 px-5 py-2 text-sm">Save profile</button>
       {saved && <span className="ml-3 text-sm font-semibold text-stone-600">Saved.</span>}
     </section>
   )
@@ -385,7 +417,7 @@ function ProfileSection() {
 
 function Dashboard({ go }: { go: (v: any) => void }) {
   const s = useStore()
-  if (!s.user) return <div className="text-center py-16"><button onClick={() => go({ name: 'auth' })} className="bg-stone-900 text-white rounded-full px-6 py-2.5 font-semibold">Sign in to view your dashboard</button></div>
+  if (!s.user) return <div className="text-center py-20"><button onClick={() => go({ name: 'auth' })} className="btn btn-dark px-6 py-2.5">Sign in to view your dashboard</button></div>
   const mine = s.listings.filter(l => l.seller_id === s.user!.id)
   const sales = s.orders.filter(o => o.seller_id === s.user!.id)
   const purchases = s.orders.filter(o => o.buyer_id === s.user!.id)
@@ -393,47 +425,50 @@ function Dashboard({ go }: { go: (v: any) => void }) {
   const gross = sales.reduce((a, o) => a + o.amount, 0)
   const fees = sales.reduce((a, o) => a + o.platform_fee, 0)
   return (
-    <div className="space-y-8">
-      <h1 className="text-3xl font-black">Your dashboard</h1>
+    <div className="space-y-10">
+      <div>
+        <div className="eyebrow mb-2">Account</div>
+        <h1 className="text-4xl font-black tracking-tight">Your dashboard</h1>
+      </div>
       <ProfileSection />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[['Active listings', String(mine.filter(l => l.status === 'active').length)], ['Total sales', String(sales.length)], ['Gross sales', money(gross)], ['Your payout (after 8% fee)', money(gross - fees)]].map(([k, v]) => (
-          <div key={k} className="bg-white border border-stone-200 rounded-2xl p-4"><div className="text-xs uppercase tracking-widest text-stone-500">{k}</div><div className="text-2xl font-black mt-1">{v}</div></div>
+          <div key={k} className="card p-5"><div className="eyebrow">{k}</div><div className="text-[28px] font-black tracking-tight mt-2 leading-none">{v}</div></div>
         ))}
       </div>
 
-      <section className="bg-white border border-stone-200 rounded-3xl p-6">
-        <h2 className="font-black mb-2">Payouts — Stripe Connect</h2>
+      <section className="card p-6 md:p-7">
+        <h2 className="font-black tracking-tight text-lg mb-2">Payouts — Stripe Connect</h2>
         {isStripeConfigured
-          ? <p className="text-sm text-stone-600">Stripe is connected. Sale funds are held in escrow and released to your connected Stripe account 3 days after delivery.</p>
-          : <p className="text-sm text-stone-600">Stripe Connect is not connected yet, so payouts can't be sent. Once the site's Stripe keys are set, you'll onboard with Stripe here and payouts will release 3 days after delivery (after the 8% platform fee).</p>}
+          ? <p className="text-sm text-stone-600 leading-relaxed">Stripe is connected. Sale funds are held in escrow and released to your connected Stripe account 3 days after delivery.</p>
+          : <p className="text-sm text-stone-600 leading-relaxed">Stripe Connect is not connected yet, so payouts can't be sent. Once the site's Stripe keys are set, you'll onboard with Stripe here and payouts will release 3 days after delivery (after the 8% platform fee).</p>}
       </section>
 
       <section>
-        <h2 className="font-black mb-3">Offers to review</h2>
+        <h2 className="font-black tracking-tight text-lg mb-3.5">Offers to review</h2>
         {inbox.length === 0 ? <p className="text-stone-500 text-sm">No pending offers.</p> : inbox.map(o => (
-          <div key={o.id} className="bg-white border border-stone-200 rounded-2xl p-4 mb-2 flex items-center gap-3">
+          <div key={o.id} className="card p-4 mb-2.5 flex items-center gap-3 transition hover:border-stone-300">
             <div className="flex-1"><span className="font-semibold">{o.listing_title}</span> — {money(o.amount)} from {o.buyer_name}</div>
-            <button onClick={() => s.respondOffer(o, true)} className="bg-stone-900 text-white rounded-full px-4 py-1.5 text-sm font-semibold">Accept</button>
-            <button onClick={() => s.respondOffer(o, false)} className="border border-stone-300 rounded-full px-4 py-1.5 text-sm font-semibold">Decline</button>
+            <button onClick={() => s.respondOffer(o, true)} className="btn btn-dark px-4 py-1.5 text-sm">Accept</button>
+            <button onClick={() => s.respondOffer(o, false)} className="btn btn-outline px-4 py-1.5 text-sm">Decline</button>
           </div>
         ))}
       </section>
 
       <section>
-        <h2 className="font-black mb-3">Your listings</h2>
+        <h2 className="font-black tracking-tight text-lg mb-3.5">Your listings</h2>
         {mine.length === 0 ? <p className="text-stone-500 text-sm">You haven't listed anything yet.</p> : mine.map(l => (
-          <div key={l.id} className="bg-white border border-stone-200 rounded-2xl p-4 mb-2 flex items-center gap-3">
-            <div className="flex-1 font-semibold">{l.title} {l.verified && <VerifiedBadge />}<div className="text-sm text-stone-500 font-normal">{money(l.price)} · {l.status}</div></div>
-            {l.status === 'active' && <button onClick={() => s.removeListing(l.id)} className="text-sm font-semibold text-red-700">Remove</button>}
+          <div key={l.id} className="card p-4 mb-2.5 flex items-center gap-3 transition hover:border-stone-300">
+            <div className="flex-1 font-semibold">{l.title} {l.verified && <VerifiedBadge />}<div className="text-sm text-stone-500 font-normal mt-0.5">{money(l.price)} · {l.status}</div></div>
+            {l.status === 'active' && <button onClick={() => s.removeListing(l.id)} className="text-sm font-semibold text-red-700 hover:text-red-900 transition">Remove</button>}
           </div>
         ))}
       </section>
 
       <section>
-        <h2 className="font-black mb-3">Your purchases</h2>
+        <h2 className="font-black tracking-tight text-lg mb-3.5">Your purchases</h2>
         {purchases.length === 0 ? <p className="text-stone-500 text-sm">No purchases yet.</p> : purchases.map(o => (
-          <div key={o.id} className="bg-white border border-stone-200 rounded-2xl p-4 mb-2 text-sm"><span className="font-semibold">{o.listing_title}</span> — {money(o.amount)} · {o.status}</div>
+          <div key={o.id} className="card p-4 mb-2.5 text-sm transition hover:border-stone-300"><span className="font-semibold">{o.listing_title}</span> — {money(o.amount)} · {o.status}</div>
         ))}
       </section>
     </div>
@@ -444,36 +479,37 @@ function MessagesView({ threadId, go }: { threadId?: string; go: (v: any) => voi
   const s = useStore()
   const [activeId, setActiveId] = useState<string | undefined>(threadId)
   const [draft, setDraft] = useState('')
-  if (!s.user) return <div className="text-center py-16"><button onClick={() => go({ name: 'auth' })} className="bg-stone-900 text-white rounded-full px-6 py-2.5 font-semibold">Sign in to view messages</button></div>
+  if (!s.user) return <div className="text-center py-20"><button onClick={() => go({ name: 'auth' })} className="btn btn-dark px-6 py-2.5">Sign in to view messages</button></div>
   const mine = s.threads.filter(t => t.buyer_id === s.user!.id || t.seller_id === s.user!.id)
   const active = mine.find(t => t.id === activeId) || mine[0]
   const msgs = active ? s.messages.filter(m => m.thread_id === active.id) : []
   return (
     <div className="grid md:grid-cols-3 gap-6">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-black mb-2">Messages</h1>
-        {mine.length === 0 && <p className="text-stone-500 text-sm">No conversations yet. Message a seller from any listing.</p>}
+      <div className="space-y-2.5">
+        <div className="eyebrow mb-1">Inbox</div>
+        <h1 className="text-3xl font-black tracking-tight mb-3">Messages</h1>
+        {mine.length === 0 && <p className="text-stone-500 text-sm leading-relaxed">No conversations yet. Message a seller from any listing.</p>}
         {mine.map(t => (
-          <button key={t.id} onClick={() => setActiveId(t.id)} className={`w-full text-left bg-white border rounded-2xl p-4 ${active?.id === t.id ? 'border-stone-900' : 'border-stone-200'}`}>
+          <button key={t.id} onClick={() => setActiveId(t.id)} className={`card w-full text-left p-4 transition hover:border-stone-300 ${active?.id === t.id ? 'border-stone-900 shadow-md shadow-stone-900/5' : ''}`}>
             <div className="font-semibold text-sm">{t.listing_title}</div>
-            <div className="text-xs text-stone-500">with {t.buyer_id === s.user!.id ? t.seller_name : t.buyer_name}</div>
+            <div className="text-xs text-stone-500 mt-0.5">with {t.buyer_id === s.user!.id ? t.seller_name : t.buyer_name}</div>
           </button>
         ))}
       </div>
-      <div className="md:col-span-2 bg-white border border-stone-200 rounded-3xl p-6 flex flex-col min-h-[400px]">
+      <div className="card md:col-span-2 rounded-[2rem] p-6 md:p-7 flex flex-col min-h-[420px]">
         {active ? <>
-          <div className="font-black mb-4">{active.listing_title}</div>
-          <div className="flex-1 space-y-2 overflow-auto">
+          <div className="font-black tracking-tight text-lg pb-4 border-b border-stone-100">{active.listing_title}</div>
+          <div className="flex-1 space-y-2.5 overflow-auto py-4">
             {msgs.map(m => (
-              <div key={m.id} className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm ${m.sender_id === s.user!.id ? 'bg-stone-900 text-white ml-auto' : 'bg-stone-100'}`}>
-                <div className="text-[11px] opacity-70">{m.sender_name}</div>{m.body}
+              <div key={m.id} className={`max-w-[75%] px-4 py-2.5 text-sm leading-relaxed ${m.sender_id === s.user!.id ? 'bg-stone-950 text-white ml-auto rounded-3xl rounded-br-md' : 'bg-stone-100 rounded-3xl rounded-bl-md'}`}>
+                <div className="text-[11px] opacity-60 mb-0.5">{m.sender_name}</div>{m.body}
               </div>
             ))}
             {msgs.length === 0 && <p className="text-stone-400 text-sm">Say hello to start the conversation.</p>}
           </div>
-          <div className="flex gap-2 mt-4">
-            <input value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { s.sendMessage(active.id, draft); setDraft('') } }} placeholder="Write a message…" className="flex-1 border border-stone-300 rounded-full px-4 py-2.5" />
-            <button onClick={() => { s.sendMessage(active.id, draft); setDraft('') }} className="bg-stone-900 text-white rounded-full px-5 font-semibold">Send</button>
+          <div className="flex gap-2 mt-2">
+            <input value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { s.sendMessage(active.id, draft); setDraft('') } }} placeholder="Write a message…" className="field field-pill flex-1" />
+            <button onClick={() => { s.sendMessage(active.id, draft); setDraft('') }} className="btn btn-dark px-6">Send</button>
           </div>
         </> : <p className="text-stone-400">Select a conversation.</p>}
       </div>
@@ -483,13 +519,14 @@ function MessagesView({ threadId, go }: { threadId?: string; go: (v: any) => voi
 
 function WishlistView({ go }: { go: (v: any) => void }) {
   const s = useStore()
-  if (!s.user) return <div className="text-center py-16"><button onClick={() => go({ name: 'auth' })} className="bg-stone-900 text-white rounded-full px-6 py-2.5 font-semibold">Sign in to view your wishlist</button></div>
+  if (!s.user) return <div className="text-center py-20"><button onClick={() => go({ name: 'auth' })} className="btn btn-dark px-6 py-2.5">Sign in to view your wishlist</button></div>
   const items = s.listings.filter(l => s.wishlist.some(w => w.listing_id === l.id && w.user_id === s.user!.id))
   return (
     <div>
-      <h1 className="text-3xl font-black mb-5">Wishlist</h1>
+      <div className="eyebrow mb-2">Saved</div>
+      <h1 className="text-4xl font-black tracking-tight mb-7">Wishlist</h1>
       {items.length === 0 ? <p className="text-stone-500">Nothing saved yet.</p> : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-5">{items.map(l => <ListingCard key={l.id} l={l} onOpen={() => go({ name: 'listing', listingId: l.id })} />)}</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">{items.map(l => <ListingCard key={l.id} l={l} onOpen={() => go({ name: 'listing', listingId: l.id })} />)}</div>
       )}
     </div>
   )
@@ -505,13 +542,13 @@ const OWNER_PASSCODE = '102824'
 function OwnerGate({ onClose, onUnlock }: { onClose: () => void; onUnlock: () => void }) {
   const [code, setCode] = useState(''); const [err, setErr] = useState('')
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4" onClick={onClose}>
-      <div className="bg-white rounded-3xl p-8 max-w-sm w-full" onClick={e => e.stopPropagation()}>
-        <h2 className="font-black text-xl mb-2">Owner access</h2>
-        <p className="text-sm text-stone-500 mb-4">Enter the owner passcode.</p>
-        <input type="password" value={code} onChange={e => setCode(e.target.value)} className="w-full border border-stone-300 rounded-xl px-4 py-2.5 mb-3" placeholder="Passcode" />
+    <div className="fixed inset-0 bg-stone-950/60 backdrop-blur-sm z-50 flex items-center justify-center px-4" onClick={onClose}>
+      <div className="bg-white rounded-[2rem] shadow-2xl p-8 max-w-sm w-full" onClick={e => e.stopPropagation()}>
+        <h2 className="font-black tracking-tight text-xl mb-2">Owner access</h2>
+        <p className="text-sm text-stone-500 mb-5">Enter the owner passcode.</p>
+        <input type="password" value={code} onChange={e => setCode(e.target.value)} className="field mb-3" placeholder="Passcode" />
         {err && <div className="text-sm text-red-700 mb-3">{err}</div>}
-        <button onClick={() => { if (code === OWNER_PASSCODE) onUnlock(); else setErr('Incorrect passcode.') }} className="w-full bg-stone-900 text-white rounded-full py-2.5 font-bold">Unlock</button>
+        <button onClick={() => { if (code === OWNER_PASSCODE) onUnlock(); else setErr('Incorrect passcode.') }} className="btn btn-dark w-full py-3 font-bold">Unlock</button>
       </div>
     </div>
   )
@@ -525,44 +562,47 @@ function OwnerConsole() {
   const commission = s.orders.reduce((a, o) => a + o.platform_fee, 0)
   const pending = s.verification.filter(v => v.status === 'pending')
   return (
-    <div className="space-y-8">
-      <h1 className="text-3xl font-black">Owner Console</h1>
+    <div className="space-y-10">
+      <div>
+        <div className="eyebrow mb-2">Owner</div>
+        <h1 className="text-4xl font-black tracking-tight">Owner Console</h1>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[['GMV (real orders)', money(gmv)], ['Platform revenue (8%)', money(commission)], ['Orders', String(s.orders.length)], ['Accounts', String(s.profiles.length)]].map(([k, v]) => (
-          <div key={k} className="bg-white border border-stone-200 rounded-2xl p-4"><div className="text-xs uppercase tracking-widest text-stone-500">{k}</div><div className="text-2xl font-black mt-1">{v}</div></div>
+          <div key={k} className="card p-5"><div className="eyebrow">{k}</div><div className="text-[28px] font-black tracking-tight mt-2 leading-none">{v}</div></div>
         ))}
       </div>
 
       <section>
-        <h2 className="font-black mb-3">Verification queue</h2>
+        <h2 className="font-black tracking-tight text-lg mb-3.5">Verification queue</h2>
         {pending.length === 0 ? <p className="text-stone-500 text-sm">No pending verification requests.</p> : pending.map(v => (
-          <div key={v.id} className="bg-white border border-stone-200 rounded-2xl p-4 mb-2">
+          <div key={v.id} className="card p-5 mb-2.5 transition hover:border-stone-300">
             <div className="font-semibold">{v.listing_title}</div>
-            <div className="text-sm text-stone-500">Seller: {v.seller_name} · {v.photos.filter(Boolean).length}/5 photos submitted</div>
-            <div className="flex gap-2 mt-3">
-              <button onClick={() => s.reviewVerification(v.id, true, v.listing_title)} className="rounded-full px-4 py-1.5 text-sm font-bold text-white" style={{ background: '#10B981' }}>Approve badge</button>
-              <button onClick={() => s.reviewVerification(v.id, false, v.listing_title)} className="border border-stone-300 rounded-full px-4 py-1.5 text-sm font-semibold">Reject</button>
+            <div className="text-sm text-stone-500 mt-0.5">Seller: {v.seller_name} · {v.photos.filter(Boolean).length}/5 photos submitted</div>
+            <div className="flex gap-2 mt-3.5">
+              <button onClick={() => s.reviewVerification(v.id, true, v.listing_title)} className="btn btn-dark px-4 py-1.5 text-sm">Approve badge</button>
+              <button onClick={() => s.reviewVerification(v.id, false, v.listing_title)} className="btn btn-outline px-4 py-1.5 text-sm">Reject</button>
             </div>
           </div>
         ))}
       </section>
 
       <section>
-        <h2 className="font-black mb-3">All listings</h2>
+        <h2 className="font-black tracking-tight text-lg mb-3.5">All listings</h2>
         {s.listings.length === 0 ? <p className="text-stone-500 text-sm">No listings yet.</p> : s.listings.map(l => (
-          <div key={l.id} className="bg-white border border-stone-200 rounded-2xl p-4 mb-2 flex items-center gap-3">
-            <div className="flex-1 font-semibold">{l.title} {l.verified && <VerifiedBadge />}<div className="text-sm text-stone-500 font-normal">{money(l.price)} · {l.status} · by {l.seller_name}</div></div>
-            {l.status === 'active' && <button onClick={() => s.removeListing(l.id)} className="text-sm font-semibold text-red-700">Remove</button>}
+          <div key={l.id} className="card p-4 mb-2.5 flex items-center gap-3 transition hover:border-stone-300">
+            <div className="flex-1 font-semibold">{l.title} {l.verified && <VerifiedBadge />}<div className="text-sm text-stone-500 font-normal mt-0.5">{money(l.price)} · {l.status} · by {l.seller_name}</div></div>
+            {l.status === 'active' && <button onClick={() => s.removeListing(l.id)} className="text-sm font-semibold text-red-700 hover:text-red-900 transition">Remove</button>}
           </div>
         ))}
       </section>
 
       <section>
-        <h2 className="font-black mb-3">Accounts</h2>
+        <h2 className="font-black tracking-tight text-lg mb-3.5">Accounts</h2>
         {s.profiles.length === 0 ? <p className="text-stone-500 text-sm">No accounts yet.</p> : s.profiles.map(p => (
-          <div key={p.id} className="bg-white border border-stone-200 rounded-2xl p-4 mb-2 flex items-center gap-3">
+          <div key={p.id} className="card p-4 mb-2.5 flex items-center gap-3 transition hover:border-stone-300">
             <div className="flex-1"><span className="font-semibold">{p.display_name}</span> <span className="text-sm text-stone-500">{p.email} · {p.account_type}{p.banned ? ' · BANNED' : ''}</span></div>
-            {!p.is_owner && <button onClick={() => s.setBanned(p.id, !p.banned)} className="text-sm font-semibold">{p.banned ? 'Unban' : 'Ban'}</button>}
+            {!p.is_owner && <button onClick={() => s.setBanned(p.id, !p.banned)} className="text-sm font-semibold hover:text-stone-500 transition">{p.banned ? 'Unban' : 'Ban'}</button>}
           </div>
         ))}
       </section>
