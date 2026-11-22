@@ -540,6 +540,59 @@ function ProfileSection() {
   )
 }
 
+function VerificationRetry({ l }: { l: Listing }) {
+  const s = useStore()
+  const [open, setOpen] = useState(false)
+  const [files, setFiles] = useState<(File | null)[]>(PHOTO_CHECKLIST.map(() => null))
+  const [previews, setPreviews] = useState<string[]>(PHOTO_CHECKLIST.map(() => ''))
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  if (!isSupabaseConfigured || !s.user || l.status !== 'active' || l.verified) return null
+  const existing = s.verification.find(v => v.listing_title === l.title && v.seller_id === s.user!.id)
+  if (existing && existing.status === 'pending') return <div className="text-sm text-stone-500 mt-1">Verified Authentic: <span className="font-semibold text-stone-700">in review</span> — your photos are with the reviewer.</div>
+  if (existing && existing.status === 'approved') return null
+  const pay = async () => {
+    setErr(''); setBusy(true)
+    const urls: string[] = []
+    for (const f of files) {
+      if (!f) { urls.push(''); continue }
+      const u = await s.uploadPhoto(f)
+      if (!u) { setErr('One of the photos failed to upload — try again.'); setBusy(false); return }
+      urls.push(u)
+    }
+    if (isStripeConfigured) {
+      try { localStorage.setItem('ro.pendingVerification', JSON.stringify({ listingId: l.id, listingTitle: l.title, photos: urls })) } catch { /* ignore */ }
+      const e = await s.startCheckout({ kind: 'verification', listingId: l.id })
+      setBusy(false)
+      if (e) setErr('The $5 payment could not be started (' + e + '). Your photos were uploaded — try again in a moment.')
+      return // redirecting to Stripe on success
+    }
+    const e = await s.submitVerification(l.id, l.title, urls)
+    setBusy(false)
+    if (e) setErr(e)
+  }
+  return (
+    <div className="mt-2">
+      {!open
+        ? <button onClick={() => setOpen(true)} className="text-sm font-semibold underline underline-offset-4 hover:text-stone-950 transition">Add <span style={{ color: '#10B981' }}>Verified Authentic</span> — $5{existing?.status === 'rejected' ? ' (previous request was rejected — try again)' : ''}</button>
+        : <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4 mt-1 space-y-2">
+          {PHOTO_CHECKLIST.map((label, i) => (
+            <div key={label} className="flex items-center gap-3">
+              <span className="text-sm w-48 shrink-0">{i + 1}. {label}</span>
+              <label className="flex items-center gap-2.5 flex-1 border border-dashed border-stone-300 rounded-[0.9rem] px-3.5 py-2 bg-white hover:border-stone-900 transition cursor-pointer overflow-hidden">
+                {previews[i] ? <img src={previews[i]} alt="" className="w-8 h-8 rounded-md object-cover shrink-0" /> : <span aria-hidden="true">📸</span>}
+                <span className="text-sm font-semibold truncate">{files[i] ? files[i]!.name : 'Upload photo'}</span>
+                <input type="file" accept="image/*" className="hidden" onChange={e => { const file = e.target.files?.[0] || null; const nf = [...files]; nf[i] = file; setFiles(nf); const np = [...previews]; np[i] = file ? URL.createObjectURL(file) : ''; setPreviews(np) }} />
+              </label>
+            </div>
+          ))}
+          {err && <p className="text-sm font-semibold text-red-600">{err}</p>}
+          <button disabled={busy} onClick={pay} className="btn btn-dark px-5 py-2 text-sm font-bold disabled:opacity-60">{busy ? 'Working…' : 'Pay $5 & submit photos'}</button>
+        </div>}
+    </div>
+  )
+}
+
 function Dashboard({ go }: { go: (v: any) => void }) {
   const s = useStore()
   if (!s.user) return <div className="text-center py-20"><button onClick={() => go({ name: 'auth' })} className="btn btn-dark px-6 py-2.5">Sign in to view your dashboard</button></div>
@@ -583,9 +636,12 @@ function Dashboard({ go }: { go: (v: any) => void }) {
       <section>
         <h2 className="font-black tracking-tight text-lg mb-3.5">Your listings</h2>
         {mine.length === 0 ? <p className="text-stone-500 text-sm">You haven't listed anything yet.</p> : mine.map(l => (
-          <div key={l.id} className="card p-4 mb-2.5 flex items-center gap-3 transition hover:border-stone-300">
-            <div className="flex-1 font-semibold">{l.title} {l.verified && <VerifiedBadge />}<div className="text-sm text-stone-500 font-normal mt-0.5">{money(l.price)} · {l.status}</div></div>
-            {l.status === 'active' && <button onClick={() => s.removeListing(l.id)} className="text-sm font-semibold text-red-700 hover:text-red-900 transition">Remove</button>}
+          <div key={l.id} className="card p-4 mb-2.5 transition hover:border-stone-300">
+            <div className="flex items-center gap-3">
+              <div className="flex-1 font-semibold">{l.title} {l.verified && <VerifiedBadge />}<div className="text-sm text-stone-500 font-normal mt-0.5">{money(l.price)} · {l.status}</div></div>
+              {l.status === 'active' && <button onClick={() => s.removeListing(l.id)} className="text-sm font-semibold text-red-700 hover:text-red-900 transition">Remove</button>}
+            </div>
+            <VerificationRetry l={l} />
           </div>
         ))}
       </section>
