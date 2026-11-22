@@ -42,7 +42,10 @@ interface Store {
   signInWithGoogle: () => Promise<string | null>
   signOut: () => Promise<void>
   refresh: () => Promise<void>
-  addListing: (l: Omit<Listing, 'id' | 'created_at' | 'status' | 'seller_id' | 'seller_name' | 'verified'>, verificationPhotos?: string[]) => Promise<string | null>
+  addListing: (l: Omit<Listing, 'id' | 'created_at' | 'status' | 'seller_id' | 'seller_name' | 'verified'>, verificationPhotos?: string[]) => Promise<{ error: string | null; listingId?: string }>
+  startCheckout: (args: { kind: 'listing' | 'verification'; listingId?: string }) => Promise<string | null>
+  confirmCheckout: (sessionId: string) => Promise<{ paid: boolean; kind?: string; listing_id?: string | null; error?: string }>
+  submitVerification: (listingId: string, listingTitle: string, photos: string[]) => Promise<string | null>
   removeListing: (id: string) => Promise<void>
   buyNow: (l: Listing) => Promise<Order | null>
   makeOffer: (l: Listing, amount: number) => Promise<void>
@@ -171,20 +174,19 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   // ------------------------------------------------------------- marketplace
   const addListing: Store['addListing'] = useCallback(async (l, verificationPhotos) => {
-    if (!user) return 'You need to be signed in to list an item.'
+    if (!user) return { error: 'You need to be signed in to list an item.' }
     const row: Listing = { ...l, id: uid(), seller_id: user.id, seller_name: user.display_name, verified: false, status: 'active', created_at: now() }
     if (supabase) {
       const { data, error } = await supabase.from('listings').insert({ seller_id: row.seller_id, seller_name: row.seller_name, title: row.title, brand: row.brand, category: row.category, price: row.price, size: row.size, condition: row.condition, description: row.description, image_url: row.image_url, verified: false, status: 'active' }).select().single()
-      if (error) return 'Listing failed to save: ' + error.message
-      if (verificationPhotos && data) {
-        const { error: vErr } = await supabase.from('verification_requests').insert({ listing_id: data.id, listing_title: row.title, seller_id: user.id, seller_name: user.display_name, photos: verificationPhotos, status: 'pending' })
-        if (vErr) return 'Listing saved, but the Verified Authentic request failed: ' + vErr.message
-      }
-      await refresh(); return null
+      if (error) return { error: 'Listing failed to save: ' + error.message }
+      // In Supabase mode the verification request is submitted only after the
+      // $5 Stripe checkout is confirmed (see submitVerification) — the caller
+      // gets the new listing id to start that checkout.
+      await refresh(); return { error: null, listingId: data ? (data as Listing).id : undefined }
     }
     const db = dbRef.current; db.listings.unshift(row)
     if (verificationPhotos) db.verification.unshift({ id: uid(), listing_title: row.title, seller_id: user.id, seller_name: user.display_name, photos: verificationPhotos, status: 'pending', created_at: now() })
-    persistLocal(); return null
+    persistLocal(); return { error: null, listingId: row.id }
   }, [user, refresh, persistLocal])
 
   const removeListing = useCallback(async (id: string) => {
@@ -203,6 +205,39 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
     const db = dbRef.current; db.orders.unshift(order); const li = db.listings.find(x => x.id === l.id); if (li) li.status = 'sold'; persistLocal(); return order
   }, [user, refresh, persistLocal])
+
+  // ------------------------------------------------------------- Stripe checkout
+  // Real payments run through Supabase Edge Functions: create-checkout makes
+  // the Stripe Checkout Session (prices read server-side from the DB) and
+  // verify-checkout confirms the payment with Stripe before anything is
+  // recorded. On success startCheckout redirects the browser to Stripe.
+  const startCheckout = useCallback(async (args: { kind: 'listing' | 'verification'; listingId?: string }) => {
+    if (!supabase) return 'Payments are not connected on this device.'
+    const { data, error } = await supabase.functions.invoke('create-checkout', { body: { listing_id: args.listingId, kind: args.kind, origin: window.location.origin } })
+    if (error) return 'Checkout could not be started — please try again.'
+    if (data?.error) return 'Checkout could not be started: ' + data.error
+    if (data?.url) { window.location.href = data.url as string; return null }
+    return 'Checkout could not be started — please try again.'
+  }, [])
+
+  const confirmCheckout = useCallback(async (sessionId: string) => {
+    if (!supabase) return { paid: false, error: 'Payments are not connected on this device.' }
+    const { data, error } = await supabase.functions.invoke('verify-checkout', { body: { session_id: sessionId } })
+    if (error) return { paid: false, error: 'Payment confirmation failed — if you were charged, your order is still recorded by Stripe and we can reconcile it.' }
+    if (data?.error) return { paid: false, error: data.error as string }
+    await refresh()
+    return { paid: Boolean(data?.paid), kind: data?.kind as string | undefined, listing_id: (data?.listing_id as string | null) ?? null }
+  }, [refresh])
+
+  const submitVerification = useCallback(async (listingId: string, listingTitle: string, photos: string[]) => {
+    if (!user) return 'You need to be signed in.'
+    if (supabase) {
+      const { error } = await supabase.from('verification_requests').insert({ listing_id: listingId, listing_title: listingTitle, seller_id: user.id, seller_name: user.display_name, photos, status: 'pending' })
+      if (error) return error.message
+      await refresh(); return null
+    }
+    return 'Verification is not available on this device.'
+  }, [user, refresh])
 
   const makeOffer = useCallback(async (l: Listing, amount: number) => {
     if (!user) return
@@ -329,8 +364,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const db = dbRef.current; const p = db.profiles.find(x => x.id === profileId); if (p) p.banned = banned; persistLocal()
   }, [refresh, persistLocal])
 
-  const value = useMemo<Store>(() => ({ user, listings, orders, offers, threads, messages, verification, wishlist, profiles, loading, signUp, signIn, signInWithGoogle, signOut, refresh, addListing, removeListing, buyNow, makeOffer, respondOffer, startThread, sendMessage, toggleWishlist, reviewVerification, setBanned, updateProfile, sendEmailCode, verifyEmailCode, uploadPhoto }),
-    [user, listings, orders, offers, threads, messages, verification, wishlist, profiles, loading, signUp, signIn, signInWithGoogle, signOut, refresh, addListing, removeListing, buyNow, makeOffer, respondOffer, startThread, sendMessage, toggleWishlist, reviewVerification, setBanned, updateProfile, sendEmailCode, verifyEmailCode, uploadPhoto])
+  const value = useMemo<Store>(() => ({ user, listings, orders, offers, threads, messages, verification, wishlist, profiles, loading, signUp, signIn, signInWithGoogle, signOut, refresh, addListing, removeListing, buyNow, startCheckout, confirmCheckout, submitVerification, makeOffer, respondOffer, startThread, sendMessage, toggleWishlist, reviewVerification, setBanned, updateProfile, sendEmailCode, verifyEmailCode, uploadPhoto }),
+    [user, listings, orders, offers, threads, messages, verification, wishlist, profiles, loading, signUp, signIn, signInWithGoogle, signOut, refresh, addListing, removeListing, buyNow, startCheckout, confirmCheckout, submitVerification, makeOffer, respondOffer, startThread, sendMessage, toggleWishlist, reviewVerification, setBanned, updateProfile, sendEmailCode, verifyEmailCode, uploadPhoto])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
