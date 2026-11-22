@@ -27,8 +27,8 @@ const now = () => new Date().toISOString()
 // computed from whatever real rows exist, never seeded.
 // ---------------------------------------------------------------------------
 const LS_KEY = 'resaleoutlets.local.v1'
-interface LocalDb { profiles: Profile[]; passwords: Record<string, string>; listings: Listing[]; orders: Order[]; offers: Offer[]; threads: Thread[]; messages: Message[]; verification: VerificationRequest[]; wishlist: WishlistRow[]; sessionUserId: string | null }
-const emptyDb = (): LocalDb => ({ profiles: [], passwords: {}, listings: [], orders: [], offers: [], threads: [], messages: [], verification: [], wishlist: [], sessionUserId: null })
+interface LocalDb { profiles: Profile[]; passwords: Record<string, string>; emailCodes: Record<string, string>; listings: Listing[]; orders: Order[]; offers: Offer[]; threads: Thread[]; messages: Message[]; verification: VerificationRequest[]; wishlist: WishlistRow[]; sessionUserId: string | null }
+const emptyDb = (): LocalDb => ({ profiles: [], passwords: {}, emailCodes: {}, listings: [], orders: [], offers: [], threads: [], messages: [], verification: [], wishlist: [], sessionUserId: null })
 function loadDb(): LocalDb { try { const raw = localStorage.getItem(LS_KEY); if (raw) return { ...emptyDb(), ...JSON.parse(raw) } } catch { /* storage unavailable */ } return emptyDb() }
 function saveDb(db: LocalDb) { try { localStorage.setItem(LS_KEY, JSON.stringify(db)) } catch { /* ignore */ } }
 
@@ -53,6 +53,8 @@ interface Store {
   reviewVerification: (id: string, approve: boolean, listingTitle: string) => Promise<void>
   setBanned: (profileId: string, banned: boolean) => Promise<void>
   updateProfile: (name: string, type: AccountType) => Promise<void>
+  sendEmailCode: (email: string) => Promise<{ error: string | null; localCode?: string }>
+  verifyEmailCode: (email: string, code: string) => Promise<string | null>
 }
 
 const Ctx = createContext<Store | null>(null)
@@ -254,6 +256,40 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     persistLocal()
   }, [refresh, persistLocal])
 
+  const sendEmailCode = useCallback(async (email: string) => {
+    const em = email.trim().toLowerCase()
+    if (!em) return { error: 'Enter your email first.' }
+    if (supabase) {
+      const { error } = await supabase.auth.signInWithOtp({ email: em, options: { shouldCreateUser: true } })
+      return { error: error ? error.message : null }
+    }
+    // Local fallback only (no backend connected): no real email can be sent,
+    // so the code is shown on screen for this device only.
+    const code = String(Math.floor(100000 + Math.random() * 900000))
+    dbRef.current.emailCodes[em] = code; persistLocal()
+    return { error: null, localCode: code }
+  }, [persistLocal])
+
+  const verifyEmailCode = useCallback(async (email: string, code: string) => {
+    const em = email.trim().toLowerCase()
+    if (supabase) {
+      const { data, error } = await supabase.auth.verifyOtp({ email: em, token: code.trim(), type: 'email' })
+      if (error) return error.message
+      if (data.user) {
+        const { data: prof } = await supabase.from('profiles').select('*').eq('id', data.user.id).single()
+        if (!prof) await supabase.from('profiles').insert({ id: data.user.id, email: em, display_name: em.split('@')[0], account_type: 'both' })
+      }
+      await refresh(); return null
+    }
+    const db = dbRef.current
+    if (!db.emailCodes[em] || db.emailCodes[em] !== code.trim()) return 'That code does not match. Check the code and try again.'
+    delete db.emailCodes[em]
+    let prof = db.profiles.find(p => p.email.toLowerCase() === em)
+    if (!prof) { prof = { id: uid(), email: em, display_name: em.split('@')[0], account_type: 'both' }; db.profiles.push(prof) }
+    if (prof.banned) return 'This account has been suspended.'
+    db.sessionUserId = prof.id; persistLocal(); return null
+  }, [refresh, persistLocal])
+
   const updateProfile = useCallback(async (name: string, type: AccountType) => {
     if (!user) return
     if (supabase) { await supabase.from('profiles').update({ display_name: name, account_type: type }).eq('id', user.id); await refresh(); return }
@@ -265,8 +301,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const db = dbRef.current; const p = db.profiles.find(x => x.id === profileId); if (p) p.banned = banned; persistLocal()
   }, [refresh, persistLocal])
 
-  const value = useMemo<Store>(() => ({ user, listings, orders, offers, threads, messages, verification, wishlist, profiles, loading, signUp, signIn, signInWithGoogle, signOut, refresh, addListing, removeListing, buyNow, makeOffer, respondOffer, startThread, sendMessage, toggleWishlist, reviewVerification, setBanned, updateProfile }),
-    [user, listings, orders, offers, threads, messages, verification, wishlist, profiles, loading, signUp, signIn, signInWithGoogle, signOut, refresh, addListing, removeListing, buyNow, makeOffer, respondOffer, startThread, sendMessage, toggleWishlist, reviewVerification, setBanned, updateProfile])
+  const value = useMemo<Store>(() => ({ user, listings, orders, offers, threads, messages, verification, wishlist, profiles, loading, signUp, signIn, signInWithGoogle, signOut, refresh, addListing, removeListing, buyNow, makeOffer, respondOffer, startThread, sendMessage, toggleWishlist, reviewVerification, setBanned, updateProfile, sendEmailCode, verifyEmailCode }),
+    [user, listings, orders, offers, threads, messages, verification, wishlist, profiles, loading, signUp, signIn, signInWithGoogle, signOut, refresh, addListing, removeListing, buyNow, makeOffer, respondOffer, startThread, sendMessage, toggleWishlist, reviewVerification, setBanned, updateProfile, sendEmailCode, verifyEmailCode])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
