@@ -39,7 +39,7 @@ interface Store {
   loading: boolean
   signUp: (email: string, password: string, name: string, type: AccountType) => Promise<string | null>
   signIn: (email: string, password: string) => Promise<string | null>
-  signInWithGoogle: () => Promise<void>
+  signInWithGoogle: () => Promise<string | null>
   signOut: () => Promise<void>
   refresh: () => Promise<void>
   addListing: (l: Omit<Listing, 'id' | 'created_at' | 'status' | 'seller_id' | 'seller_name' | 'verified'>, verificationPhotos?: string[]) => Promise<void>
@@ -103,7 +103,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const { data: sess } = await supabase.auth.getSession()
     const au = sess.session?.user
     if (au) {
-      const { data: prof } = await supabase.from('profiles').select('*').eq('id', au.id).single()
+      let { data: prof } = await supabase.from('profiles').select('*').eq('id', au.id).single()
+      // First sign-in (e.g. via Google): create the profile row so the session sticks.
+      // OAuth sign-in (Google) creates an auth user with NO profile row,
+      // unlike sign-up / email-code which insert one. Without a row the
+      // app kept showing the user as signed out even with a live session.
+      if (!prof) {
+        const meta = (au as { user_metadata?: Record<string, unknown> }).user_metadata || {}
+        const displayName = String(meta.full_name || meta.name || au.email?.split('@')[0] || '')
+        const { data: created } = await supabase.from('profiles').insert({ id: au.id, email: au.email || '', display_name: displayName, account_type: 'both' }).select().single()
+        prof = created || { id: au.id, email: au.email || '', display_name: displayName, account_type: 'both' }
+      }
       if (prof) setUser(prof as Profile)
       const { data: all } = await supabase.from('profiles').select('*')
       if (all) setProfiles(all as Profile[])
@@ -148,9 +158,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [refresh, persistLocal])
 
   const signInWithGoogle = useCallback(async () => {
-    if (supabase) {
-      await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } })
-    }
+    if (!supabase) return 'Sign-in backend is not connected.'
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } })
+    return error ? error.message : null
   }, [])
 
   const signOut = useCallback(async () => {
@@ -265,7 +275,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
     // Local fallback only (no backend connected): no real email can be sent,
     // so the code is shown on screen for this device only.
-    const code = String(Math.floor(100000 + Math.random() * 900000))
+    const code = String(Math.floor(10000000 + Math.random() * 90000000))
     dbRef.current.emailCodes[em] = code; persistLocal()
     return { error: null, localCode: code }
   }, [persistLocal])
@@ -273,7 +283,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const verifyEmailCode = useCallback(async (email: string, code: string) => {
     const em = email.trim().toLowerCase()
     if (supabase) {
-      const { data, error } = await supabase.auth.verifyOtp({ email: em, token: code.trim(), type: 'email' })
+      const { data, error } = await supabase.auth.verifyOtp({ email: em, token: code.replace(/\D/g, ''), type: 'email' })
       if (error) return error.message
       if (data.user) {
         const { data: prof } = await supabase.from('profiles').select('*').eq('id', data.user.id).single()
