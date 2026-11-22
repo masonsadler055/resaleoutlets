@@ -42,7 +42,7 @@ interface Store {
   signInWithGoogle: () => Promise<string | null>
   signOut: () => Promise<void>
   refresh: () => Promise<void>
-  addListing: (l: Omit<Listing, 'id' | 'created_at' | 'status' | 'seller_id' | 'seller_name' | 'verified'>, verificationPhotos?: string[]) => Promise<void>
+  addListing: (l: Omit<Listing, 'id' | 'created_at' | 'status' | 'seller_id' | 'seller_name' | 'verified'>, verificationPhotos?: string[]) => Promise<string | null>
   removeListing: (id: string) => Promise<void>
   buyNow: (l: Listing) => Promise<Order | null>
   makeOffer: (l: Listing, amount: number) => Promise<void>
@@ -171,16 +171,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   // ------------------------------------------------------------- marketplace
   const addListing: Store['addListing'] = useCallback(async (l, verificationPhotos) => {
-    if (!user) return
+    if (!user) return 'You need to be signed in to list an item.'
     const row: Listing = { ...l, id: uid(), seller_id: user.id, seller_name: user.display_name, verified: false, status: 'active', created_at: now() }
     if (supabase) {
-      const { data } = await supabase.from('listings').insert({ seller_id: row.seller_id, seller_name: row.seller_name, title: row.title, brand: row.brand, category: row.category, price: row.price, size: row.size, condition: row.condition, description: row.description, image_url: row.image_url, verified: false, status: 'active' }).select().single()
-      if (verificationPhotos && data) await supabase.from('verification_requests').insert({ listing_id: data.id, listing_title: row.title, seller_id: user.id, seller_name: user.display_name, photos: verificationPhotos, status: 'pending' })
-      await refresh(); return
+      const { data, error } = await supabase.from('listings').insert({ seller_id: row.seller_id, seller_name: row.seller_name, title: row.title, brand: row.brand, category: row.category, price: row.price, size: row.size, condition: row.condition, description: row.description, image_url: row.image_url, verified: false, status: 'active' }).select().single()
+      if (error) return 'Listing failed to save: ' + error.message
+      if (verificationPhotos && data) {
+        const { error: vErr } = await supabase.from('verification_requests').insert({ listing_id: data.id, listing_title: row.title, seller_id: user.id, seller_name: user.display_name, photos: verificationPhotos, status: 'pending' })
+        if (vErr) return 'Listing saved, but the Verified Authentic request failed: ' + vErr.message
+      }
+      await refresh(); return null
     }
     const db = dbRef.current; db.listings.unshift(row)
     if (verificationPhotos) db.verification.unshift({ id: uid(), listing_title: row.title, seller_id: user.id, seller_name: user.display_name, photos: verificationPhotos, status: 'pending', created_at: now() })
-    persistLocal()
+    persistLocal(); return null
   }, [user, refresh, persistLocal])
 
   const removeListing = useCallback(async (id: string) => {
