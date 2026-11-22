@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { StoreProvider, useStore, BRANDS, CONDITIONS, PHOTO_CHECKLIST, type Listing, type AccountType } from './lib/store'
 import { isStripeConfigured, isSupabaseConfigured } from './lib/supabase'
 
@@ -37,6 +37,41 @@ function AppInner() {
   const [flash, setFlash] = useState(false)
   const [flashIdx, setFlashIdx] = useState(0)
   const FLASH_ICONS = ['👟', '👕', '👟', '🧥']
+
+  // Stripe Checkout return: Stripe sends the buyer back to /?checkout=success
+  // &session_id=… (or =cancelled). Confirm the payment server-side before
+  // showing/recording anything; for the $5 verification, submit the queued
+  // request only after the payment checks out.
+  const [checkoutNotice, setCheckoutNotice] = useState('')
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const co = params.get('checkout')
+    if (!co || s.loading) return
+    const sid = params.get('session_id') || ''
+    const key = 'ro.checkout.' + (sid || co)
+    try { if (sessionStorage.getItem(key)) { window.history.replaceState({}, '', window.location.pathname); return } sessionStorage.setItem(key, '1') } catch { /* ignore */ }
+    window.history.replaceState({}, '', window.location.pathname)
+    if (co === 'cancelled') { setCheckoutNotice('Checkout cancelled — nothing was charged.'); return }
+    if (co === 'success' && sid) {
+      ;(async () => {
+        const r = await s.confirmCheckout(sid)
+        if (!r.paid) { setCheckoutNotice(r.error || 'Payment could not be confirmed — if you were charged, contact us and we will sort it out.'); return }
+        if (r.kind === 'verification') {
+          try {
+            const stash = JSON.parse(localStorage.getItem('ro.pendingVerification') || 'null')
+            if (stash && stash.listingId && stash.photos) {
+              const err = await s.submitVerification(stash.listingId, stash.listingTitle || '', stash.photos)
+              localStorage.removeItem('ro.pendingVerification')
+              setCheckoutNotice(err ? 'Payment confirmed, but the verification request failed to submit: ' + err : 'Payment confirmed — your Verified Authentic photos are in the review queue. The badge appears once approved.')
+            } else setCheckoutNotice('Payment confirmed — thank you.')
+          } catch { setCheckoutNotice('Payment confirmed — thank you.') }
+        } else {
+          setCheckoutNotice('Payment confirmed — order placed. Your payment is held in escrow and released to the seller 3 days after delivery.')
+        }
+      })()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s.loading])
 
   const go = (v: View) => {
     if (v.name === view.name && v.listingId === view.listingId && v.threadId === view.threadId) { setView(v); window.scrollTo(0, 0); return }
@@ -90,6 +125,12 @@ function AppInner() {
       </header>
 
       <main key={view.name + (view.listingId || '') + (view.threadId || '')} className="view-enter flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 md:py-10">
+        {checkoutNotice && (
+          <div className="mb-6 bg-stone-950 text-white rounded-2xl px-5 py-4 text-sm font-semibold flex items-center justify-between gap-4">
+            <span>{checkoutNotice}</span>
+            <button onClick={() => setCheckoutNotice('')} className="text-white/60 hover:text-white shrink-0" aria-label="Dismiss">✕</button>
+          </div>
+        )}
         {view.name === 'home' && <>
           <section className="relative overflow-hidden bg-stone-950 text-white rounded-[2rem] px-6 py-16 md:px-12 md:py-24 mb-12">
             <div className="pointer-events-none absolute -top-32 -right-32 w-96 h-96 rounded-full bg-stone-800/50 blur-3xl glow-slow" aria-hidden="true" />
@@ -228,6 +269,12 @@ function ListingDetail({ id, go }: { id: string; go: (v: any) => void }) {
   const handleBuy = async () => {
     if (!s.user) { go({ name: 'auth' }); return }
     if (!isStripeConfigured) { setNotice('Payments are being connected — checkout opens as soon as Stripe is live on this site. Your order intent has not been charged.'); return }
+    if (isSupabaseConfigured) {
+      setNotice('Taking you to secure Stripe checkout…')
+      const err = await s.startCheckout({ kind: 'listing', listingId: l.id })
+      if (err) setNotice(err)
+      return
+    }
     const order = await s.buyNow(l)
     if (order) setNotice(`Order placed. ${money(order.amount)} is held in escrow and released to the seller 3 days after delivery.`)
   }
@@ -390,17 +437,31 @@ function SellView({ go }: { go: (v: any) => void }) {
         photoUrls.push(u)
       }
     }
-    const addErr = await s.addListing({ title: f.title, brand: f.brand, category: f.category, price: parseFloat(f.price) || 0, size: f.size, condition: f.condition, description: f.description, image_url: imageUrl },
-      photoUrls)
+    const addRes = await s.addListing({ title: f.title, brand: f.brand, category: f.category, price: parseFloat(f.price) || 0, size: f.size, condition: f.condition, description: f.description, image_url: imageUrl },
+      wantVerified && !isSupabaseConfigured ? photoUrls : undefined)
     setUploading(false)
-    if (addErr) { setUploadErr(addErr); return }
+    if (addRes.error) { setUploadErr(addRes.error); return }
+    if (wantVerified && isSupabaseConfigured && addRes.listingId) {
+      if (isStripeConfigured) {
+        // Stash the checklist photos; the request is only submitted once the
+        // $5 Stripe payment is confirmed on return (see AppInner).
+        try { localStorage.setItem('ro.pendingVerification', JSON.stringify({ listingId: addRes.listingId, listingTitle: f.title, photos: photoUrls || [] })) } catch { /* ignore */ }
+        setUploading(true)
+        const err = await s.startCheckout({ kind: 'verification', listingId: addRes.listingId })
+        setUploading(false)
+        if (err) { setUploadErr('Your listing is published, but the $5 Verified Authentic payment could not be started (' + err + '). The verification request has not been submitted yet.'); return }
+        return // browser is redirecting to Stripe
+      }
+      const vErr = await s.submitVerification(addRes.listingId, f.title, photoUrls || [])
+      if (vErr) { setUploadErr('Your listing is published, but the verification request failed: ' + vErr); return }
+    }
     setDone(true)
   }
   if (done) return (
     <div className="max-w-md mx-auto text-center py-20">
       <div className="eyebrow mb-3">Done</div>
       <h1 className="text-3xl font-black tracking-tight mb-2.5">Listing published</h1>
-      <p className="text-stone-500 mb-6">{wantVerified ? 'Your Verified Authentic request ($5) is in the review queue — the badge appears once approved.' : 'Your item is live on the marketplace.'}</p>
+      <p className="text-stone-500 mb-6">{wantVerified ? 'Your Verified Authentic request is in the review queue — the badge appears once approved.' : 'Your item is live on the marketplace.'}</p>
       <button onClick={() => go({ name: 'home' })} className="btn btn-dark px-6 py-2.5">View marketplace</button>
     </div>
   )
@@ -504,7 +565,7 @@ function Dashboard({ go }: { go: (v: any) => void }) {
       <section className="card p-6 md:p-7">
         <h2 className="font-black tracking-tight text-lg mb-2">Payouts — Stripe Connect</h2>
         {isStripeConfigured
-          ? <p className="text-sm text-stone-600 leading-relaxed">Stripe is connected. Sale funds are held in escrow and released to your connected Stripe account 3 days after delivery.</p>
+          ? <p className="text-sm text-stone-600 leading-relaxed">Stripe checkout is live: buyers pay through Stripe and the money is held in escrow in the marketplace account. Seller payouts are released 3 days after delivery, minus the 8% platform fee. Automatic per-seller Stripe Connect payouts are the next upgrade — until then the owner releases payouts from the recorded orders.</p>
           : <p className="text-sm text-stone-600 leading-relaxed">Stripe Connect is not connected yet, so payouts can't be sent. Once the site's Stripe keys are set, you'll onboard with Stripe here and payouts will release 3 days after delivery (after the 8% platform fee).</p>}
       </section>
 
