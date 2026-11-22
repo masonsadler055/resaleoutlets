@@ -218,6 +218,21 @@ function AuthView({ go }: { go: (v: any) => void }) {
   const [email, setEmail] = useState(''); const [password, setPassword] = useState('')
   const [name, setName] = useState(''); const [type, setType] = useState<AccountType>('both')
   const [err, setErr] = useState('')
+  const [code, setCode] = useState(''); const [codeSent, setCodeSent] = useState(false)
+  const [localCode, setLocalCode] = useState(''); const [codeErr, setCodeErr] = useState(''); const [codeMsg, setCodeMsg] = useState('')
+  const sendCode = async () => {
+    setCodeErr(''); setCodeMsg('')
+    const r = await s.sendEmailCode(email)
+    if (r.error) { setCodeErr(r.error); return }
+    setCodeSent(true)
+    if (r.localCode) { setLocalCode(r.localCode); setCodeMsg('Preview mode (no email backend connected on this device): your code is shown here. On the live site it arrives by email.') }
+    else setCodeMsg('Code sent — check your email inbox for a 6-digit code.')
+  }
+  const verifyCode = async () => {
+    setCodeErr('')
+    const r = await s.verifyEmailCode(email, code)
+    if (r) setCodeErr(r); else go({ name: 'home' })
+  }
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setErr('')
     const r = mode === 'up' ? await s.signUp(email, password, name || email.split('@')[0], type) : await s.signIn(email, password)
@@ -244,6 +259,18 @@ function AuthView({ go }: { go: (v: any) => void }) {
         {err && <div className="text-sm text-red-700">{err}</div>}
         <button className="w-full bg-stone-900 text-white rounded-full py-3 font-bold">{mode === 'up' ? 'Sign up' : 'Sign in'}</button>
       </form>
+      <div className="flex items-center gap-3 my-4"><div className="flex-1 border-t border-stone-200" /><span className="text-xs text-stone-400">OR USE AN EMAIL CODE — NO PASSWORD</span><div className="flex-1 border-t border-stone-200" /></div>
+      <div className="space-y-3">
+        <p className="text-sm text-stone-500">Enter your email above, we'll send a 6-digit sign-in code. New emails get an account automatically.</p>
+        <button onClick={sendCode} className="w-full border border-stone-900 rounded-full py-2.5 font-semibold">Email me a sign-in code</button>
+        {codeMsg && <div className="text-sm text-stone-600">{codeMsg}</div>}
+        {localCode && <div className="text-center text-2xl font-black tracking-[0.3em] bg-stone-100 rounded-xl py-2">{localCode}</div>}
+        {codeSent && <>
+          <input value={code} onChange={e => setCode(e.target.value)} placeholder="6-digit code" inputMode="numeric" className="w-full border border-stone-300 rounded-xl px-4 py-2.5 tracking-widest" />
+          <button onClick={verifyCode} className="w-full bg-stone-900 text-white rounded-full py-3 font-bold">Verify code & sign in</button>
+        </>}
+        {codeErr && <div className="text-sm text-red-700">{codeErr}</div>}
+      </div>
       <button onClick={() => setMode(mode === 'up' ? 'in' : 'up')} className="text-sm font-semibold mt-4 underline">
         {mode === 'up' ? 'Already have an account? Sign in' : 'New here? Create an account'}
       </button>
@@ -312,6 +339,34 @@ function SellView({ go }: { go: (v: any) => void }) {
   )
 }
 
+function ProfileSection() {
+  const s = useStore()
+  const [name, setName] = useState(s.user?.display_name || '')
+  const [type, setType] = useState(s.user?.account_type || 'both')
+  const [saved, setSaved] = useState(false)
+  if (!s.user) return null
+  const purchases = s.orders.filter(o => o.buyer_id === s.user!.id).length
+  const sales = s.orders.filter(o => o.seller_id === s.user!.id).length
+  return (
+    <section className="bg-white border border-stone-200 rounded-3xl p-6">
+      <h2 className="font-black mb-1">Your profile</h2>
+      <p className="text-sm text-stone-500 mb-4">Every account has a profile — buyers too. This is the name other users see on your offers, messages and listings.</p>
+      <div className="grid md:grid-cols-2 gap-4 text-sm">
+        <div><div className="text-xs uppercase tracking-widest text-stone-500 mb-1">Email</div><div className="font-semibold">{s.user.email}</div></div>
+        <div><div className="text-xs uppercase tracking-widest text-stone-500 mb-1">Activity</div><div className="font-semibold">{purchases} purchase{purchases === 1 ? '' : 's'} · {sales} sale{sales === 1 ? '' : 's'}</div></div>
+        <label className="block"><span className="text-xs uppercase tracking-widest text-stone-500 block mb-1">Display name</span>
+          <input value={name} onChange={e => { setName(e.target.value); setSaved(false) }} className="w-full border border-stone-300 rounded-xl px-3 py-2" /></label>
+        <label className="block"><span className="text-xs uppercase tracking-widest text-stone-500 block mb-1">Account type</span>
+          <select value={type} onChange={e => { setType(e.target.value as any); setSaved(false) }} className="w-full border border-stone-300 rounded-xl px-3 py-2 bg-white">
+            <option value="buyer">Buyer</option><option value="seller">Seller</option><option value="both">Buyer & seller</option>
+          </select></label>
+      </div>
+      <button onClick={async () => { await s.updateProfile(name.trim() || s.user!.display_name, type as any); setSaved(true) }} className="mt-4 bg-stone-900 text-white rounded-full px-5 py-2 text-sm font-semibold">Save profile</button>
+      {saved && <span className="ml-3 text-sm font-semibold text-stone-600">Saved.</span>}
+    </section>
+  )
+}
+
 function Dashboard({ go }: { go: (v: any) => void }) {
   const s = useStore()
   if (!s.user) return <div className="text-center py-16"><button onClick={() => go({ name: 'auth' })} className="bg-stone-900 text-white rounded-full px-6 py-2.5 font-semibold">Sign in to view your dashboard</button></div>
@@ -323,7 +378,8 @@ function Dashboard({ go }: { go: (v: any) => void }) {
   const fees = sales.reduce((a, o) => a + o.platform_fee, 0)
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-black">Seller dashboard</h1>
+      <h1 className="text-3xl font-black">Your dashboard</h1>
+      <ProfileSection />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[['Active listings', String(mine.filter(l => l.status === 'active').length)], ['Total sales', String(sales.length)], ['Gross sales', money(gross)], ['Your payout (after 8% fee)', money(gross - fees)]].map(([k, v]) => (
           <div key={k} className="bg-white border border-stone-200 rounded-2xl p-4"><div className="text-xs uppercase tracking-widest text-stone-500">{k}</div><div className="text-2xl font-black mt-1">{v}</div></div>
