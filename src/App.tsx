@@ -285,7 +285,7 @@ function AuthView({ go }: { go: (v: any) => void }) {
     if (r.error) { setCodeErr(r.error); return }
     setCodeSent(true)
     if (r.localCode) { setLocalCode(r.localCode); setCodeMsg('Preview mode (no email backend connected on this device): your code is shown here. On the live site it arrives by email.') }
-    else setCodeMsg('Code sent — check your email inbox for a 6-digit code.')
+    else setCodeMsg('Code sent — check your email inbox for an 8-digit code. Enter all 8 digits.')
   }
   const verifyCode = async () => {
     setCodeErr('')
@@ -301,7 +301,7 @@ function AuthView({ go }: { go: (v: any) => void }) {
     <div className="card max-w-md mx-auto rounded-[2rem] p-8 md:p-10">
       <h1 className="text-[28px] font-black tracking-tight leading-tight mb-1.5">{mode === 'up' ? 'Create your account' : 'Welcome back'}</h1>
       <p className="text-sm text-stone-500 mb-7">Buy, sell, or both — one account.</p>
-      <button onClick={() => s.signInWithGoogle()} className="btn btn-outline w-full py-3 mb-3">
+      <button onClick={async () => { const r = await s.signInWithGoogle(); if (r) setErr(r) }} className="btn btn-outline w-full py-3 mb-3">
         <span className="font-black mr-2">G</span> Continue with Google
       </button>
       {!isSupabaseConfigured && <p className="text-xs text-stone-400 mb-3">Google sign-in activates when the site is connected to its live accounts backend.</p>}
@@ -320,12 +320,12 @@ function AuthView({ go }: { go: (v: any) => void }) {
       </form>
       <div className="flex items-center gap-3 my-5"><div className="flex-1 border-t border-stone-200" /><span className="text-[11px] font-bold tracking-[0.14em] text-stone-400">OR USE AN EMAIL CODE — NO PASSWORD</span><div className="flex-1 border-t border-stone-200" /></div>
       <div className="space-y-3">
-        <p className="text-sm text-stone-500 leading-relaxed">Enter your email above, we'll send a 6-digit sign-in code. New emails get an account automatically.</p>
+        <p className="text-sm text-stone-500 leading-relaxed">Enter your email above, we'll send an 8-digit sign-in code. New emails get an account automatically.</p>
         <button onClick={sendCode} className="btn btn-outline w-full py-3">Email me a sign-in code</button>
         {codeMsg && <div className="text-sm text-stone-600">{codeMsg}</div>}
         {localCode && <div className="text-center text-2xl font-black tracking-[0.35em] bg-stone-950 text-white rounded-2xl py-3">{localCode}</div>}
         {codeSent && <>
-          <input value={code} onChange={e => setCode(e.target.value)} placeholder="6-digit code" inputMode="numeric" className="field tracking-[0.3em]" />
+          <input value={code} onChange={e => setCode(e.target.value)} placeholder="8-digit code" inputMode="numeric" autoComplete="one-time-code" className="field tracking-[0.3em]" />
           <button onClick={verifyCode} className="btn btn-dark w-full py-3 font-bold">Verify code & sign in</button>
         </>}
         {codeErr && <div className="text-sm text-red-700">{codeErr}</div>}
@@ -356,7 +356,12 @@ function SellView({ go }: { go: (v: any) => void }) {
   const s = useStore()
   const [f, setF] = useState({ title: '', brand: 'Nike', category: 'Sneakers', price: '', size: '', condition: 'Excellent', description: '', image_url: '' })
   const [wantVerified, setWantVerified] = useState(false)
-  const [photos, setPhotos] = useState<string[]>(PHOTO_CHECKLIST.map(() => ''))
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState('')
+  const [photoFiles, setPhotoFiles] = useState<(File | null)[]>(PHOTO_CHECKLIST.map(() => null))
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>(PHOTO_CHECKLIST.map(() => ''))
+  const [uploading, setUploading] = useState(false)
+  const [uploadErr, setUploadErr] = useState('')
   const [done, setDone] = useState(false)
   if (!s.user) return (
     <div className="max-w-md mx-auto text-center py-20">
@@ -368,8 +373,26 @@ function SellView({ go }: { go: (v: any) => void }) {
   )
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    await s.addListing({ title: f.title, brand: f.brand, category: f.category, price: parseFloat(f.price) || 0, size: f.size, condition: f.condition, description: f.description, image_url: f.image_url },
-      wantVerified ? photos : undefined)
+    setUploadErr(''); setUploading(true)
+    let imageUrl = ''
+    if (photoFile) {
+      const u = await s.uploadPhoto(photoFile)
+      if (!u) { setUploadErr('Your main photo failed to upload — check your connection and try again.'); setUploading(false); return }
+      imageUrl = u
+    }
+    let photoUrls: string[] | undefined
+    if (wantVerified) {
+      photoUrls = []
+      for (const pf of photoFiles) {
+        if (!pf) { photoUrls.push(''); continue }
+        const u = await s.uploadPhoto(pf)
+        if (!u) { setUploadErr('One of the authentication photos failed to upload — try again.'); setUploading(false); return }
+        photoUrls.push(u)
+      }
+    }
+    await s.addListing({ title: f.title, brand: f.brand, category: f.category, price: parseFloat(f.price) || 0, size: f.size, condition: f.condition, description: f.description, image_url: imageUrl },
+      photoUrls)
+    setUploading(false)
     setDone(true)
   }
   if (done) return (
@@ -396,7 +419,11 @@ function SellView({ go }: { go: (v: any) => void }) {
         <input required type="number" min="1" value={f.price} onChange={e => set('price', e.target.value)} placeholder="Price ($)" className="field" />
         <input required value={f.size} onChange={e => set('size', e.target.value)} placeholder="Size" className="field" />
         <select value={f.condition} onChange={e => set('condition', e.target.value)} className="field">{CONDITIONS.map(c => <option key={c}>{c}</option>)}</select>
-        <input value={f.image_url} onChange={e => set('image_url', e.target.value)} placeholder="Photo URL (optional)" className="field" />
+        <label className="flex items-center gap-3 border border-dashed border-stone-300 rounded-[0.9rem] px-4 py-2 bg-white hover:border-stone-900 transition cursor-pointer overflow-hidden">
+          {photoPreview ? <img src={photoPreview} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" /> : <span className="text-xl shrink-0" aria-hidden="true">📸</span>}
+          <span className="text-sm font-semibold truncate">{photoFile ? photoFile.name : 'Upload main photo'}</span>
+          <input type="file" accept="image/*" className="hidden" onChange={e => { const file = e.target.files?.[0] || null; setPhotoFile(file); setPhotoPreview(file ? URL.createObjectURL(file) : '') }} />
+        </label>
       </div>
       <textarea required value={f.description} onChange={e => set('description', e.target.value)} placeholder="Description — condition details, flaws, box/accessories included…" rows={4} className="field resize-none" />
       <div className="bg-stone-50 border border-stone-200 rounded-3xl p-5">
@@ -408,12 +435,17 @@ function SellView({ go }: { go: (v: any) => void }) {
           {PHOTO_CHECKLIST.map((label, i) => (
             <div key={label} className="flex items-center gap-3">
               <span className="text-sm w-48 shrink-0">{i + 1}. {label}</span>
-              <input value={photos[i]} onChange={e => { const p = [...photos]; p[i] = e.target.value; setPhotos(p) }} placeholder="Photo URL" className="field flex-1" />
+              <label className="flex items-center gap-2.5 flex-1 border border-dashed border-stone-300 rounded-[0.9rem] px-3.5 py-2 bg-white hover:border-stone-900 transition cursor-pointer overflow-hidden">
+                {photoPreviews[i] ? <img src={photoPreviews[i]} alt="" className="w-8 h-8 rounded-md object-cover shrink-0" /> : <span aria-hidden="true">📸</span>}
+                <span className="text-sm font-semibold truncate">{photoFiles[i] ? photoFiles[i]!.name : 'Upload photo'}</span>
+                <input type="file" accept="image/*" className="hidden" onChange={e => { const file = e.target.files?.[0] || null; const nf = [...photoFiles]; nf[i] = file; setPhotoFiles(nf); const np = [...photoPreviews]; np[i] = file ? URL.createObjectURL(file) : ''; setPhotoPreviews(np) }} />
+              </label>
             </div>
           ))}
         </div>}
       </div>
-      <button className="btn btn-dark w-full py-3.5 font-bold">Publish listing</button>
+      {uploadErr && <p className="text-sm font-semibold text-red-600">{uploadErr}</p>}
+      <button disabled={uploading} className="btn btn-dark w-full py-3.5 font-bold disabled:opacity-60">{uploading ? 'Uploading photos…' : 'Publish listing'}</button>
     </form>
   )
 }
