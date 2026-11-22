@@ -95,3 +95,26 @@ body {
   }
   .nav-link:hover { background: #f5f5f4; }
 }
+
+/* Motion — Mason's "moving parts": page-shuffle loader, brand ticker, hover pop */
+@keyframes ro-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes ro-flash-pop { 0% { transform: scale(0.6) rotate(-8deg); opacity: 0; } 60% { transform: scale(1.12) rotate(2deg); opacity: 1; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
+@keyframes ro-view-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ro-glow { 0%, 100% { transform: scale(1); opacity: 0.55; } 50% { transform: scale(1.18); opacity: 0.9; } }
+
+.animate-marquee { animation: ro-marquee 30s linear infinite; }
+.animate-marquee:hover { animation-play-state: paused; }
+.flash-icon { animation: ro-flash-pop 120ms ease both; display: inline-block; }
+.view-enter { animation: ro-view-in 320ms ease both; }
+.glow-slow { animation: ro-glow 7s ease-in-out infinite; }
+.glow-slower { animation: ro-glow 10s ease-in-out infinite reverse; }
+
+.btn:hover { transform: scale(1.045); }
+.btn:active { transform: scale(0.97); }
+
+/* Sneaker cursor over anything clickable (desktop pointers only) */
+@media (pointer: fine) {
+  a, button, select, label, input[type="checkbox"], input[type="radio"] {
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 32 32'%3E%3Cpath d='M3 18v-3.2C7 14.8 9.2 13.7 11.3 11.5L15.4 7c.8-.9 2-.9 2.9-.1l2.1 2.9c2.9 2 5.7 3 8.6 3.2V18c0 .6-.4 1-1 1H4c-.6 0-1-.4-1-1z' fill='%230c0a09'/%3E%3Cpath d='M2 21h28c.6 0 1 .4 1 1v1.6c0 .6-.4 1-1 1H3c-.6 0-1-.4-1-1V21z' fill='%23a8a29e'/%3E%3C/svg%3E") 4 6, pointer;
+  }
+}

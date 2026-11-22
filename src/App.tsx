@@ -34,10 +34,27 @@ function AppInner() {
     return r
   }, [active, brand, condition, verifiedOnly, query, sort])
 
-  const go = (v: View) => { setView(v); window.scrollTo(0, 0) }
+  const [flash, setFlash] = useState(false)
+  const [flashIdx, setFlashIdx] = useState(0)
+  const FLASH_ICONS = ['👟', '👕', '👟', '🧥']
+
+  const go = (v: View) => {
+    if (v.name === view.name && v.listingId === view.listingId && v.threadId === view.threadId) { setView(v); window.scrollTo(0, 0); return }
+    setFlashIdx(0); setFlash(true)
+    window.setTimeout(() => setFlashIdx(1), 115)
+    window.setTimeout(() => setFlashIdx(2), 230)
+    window.setTimeout(() => setFlashIdx(3), 345)
+    window.setTimeout(() => { setView(v); window.scrollTo(0, 0); setFlash(false) }, 470)
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
+      {flash && (
+        <div className="fixed inset-0 z-[100] bg-stone-950 flex flex-col items-center justify-center gap-5">
+          <span key={flashIdx} className="flash-icon text-7xl md:text-8xl" aria-hidden="true">{FLASH_ICONS[flashIdx]}</span>
+          <div className="text-white/70 text-[11px] font-bold uppercase tracking-[0.3em]">Resale Outlets</div>
+        </div>
+      )}
       <header className="sticky top-0 z-40 bg-[#fafaf9]/85 backdrop-blur-md border-b border-stone-200/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex items-center gap-3 md:gap-5">
           <button onClick={() => go({ name: 'home' })} className="text-left shrink-0">
@@ -72,11 +89,11 @@ function AppInner() {
         </div>
       </header>
 
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 md:py-10">
+      <main key={view.name + (view.listingId || '') + (view.threadId || '')} className="view-enter flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 md:py-10">
         {view.name === 'home' && <>
           <section className="relative overflow-hidden bg-stone-950 text-white rounded-[2rem] px-6 py-16 md:px-12 md:py-24 mb-12">
-            <div className="pointer-events-none absolute -top-32 -right-32 w-96 h-96 rounded-full bg-stone-800/50 blur-3xl" aria-hidden="true" />
-            <div className="pointer-events-none absolute -bottom-40 -left-24 w-80 h-80 rounded-full bg-stone-800/30 blur-3xl" aria-hidden="true" />
+            <div className="pointer-events-none absolute -top-32 -right-32 w-96 h-96 rounded-full bg-stone-800/50 blur-3xl glow-slow" aria-hidden="true" />
+            <div className="pointer-events-none absolute -bottom-40 -left-24 w-80 h-80 rounded-full bg-stone-800/30 blur-3xl glow-slower" aria-hidden="true" />
             <div className="relative">
               <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-stone-400">Resale Outlets — Peer-to-peer marketplace</div>
               <h1 className="text-5xl md:text-6xl font-black tracking-[-0.03em] leading-[1.02] max-w-2xl mt-5">Authenticated streetwear, sneakers & luxury — from real sellers.</h1>
@@ -87,6 +104,20 @@ function AppInner() {
               </div>
             </div>
           </section>
+
+          <div className="overflow-hidden border-y border-stone-200/80 py-3 mb-12 -mt-4" aria-hidden="true">
+            <div className="flex w-max animate-marquee">
+              {[0, 1].map(copy => (
+                <div key={copy} className="flex items-center gap-8 pr-8">
+                  {BRANDS.map(b => (
+                    <span key={b} className="flex items-center gap-8 whitespace-nowrap text-sm font-black uppercase tracking-[0.2em] text-stone-300">
+                      {b} <span className="text-stone-200">✦</span>
+                    </span>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
 
           <div id="brand-hubs" className="eyebrow mb-2 scroll-mt-24">Browse</div>
           <h2 className="text-xl font-black tracking-tight mb-4">Brand hubs</h2>
@@ -167,7 +198,7 @@ function ListingCard({ l, onOpen }: { l: Listing; onOpen: () => void }) {
   const s = useStore()
   const wished = s.wishlist.some(w => w.listing_id === l.id && w.user && w.user_id === s.user.id)
   return (
-    <div className="bg-white border border-stone-200/90 rounded-3xl overflow-hidden shadow-sm transition duration-300 hover:shadow-lg hover:shadow-stone-900/5 hover:-translate-y-0.5 hover:border-stone-300 group">
+    <div className="bg-white border border-stone-200/90 rounded-3xl overflow-hidden shadow-sm transition duration-300 hover:shadow-xl hover:shadow-stone-900/10 hover:-translate-y-1.5 hover:scale-[1.02] hover:border-stone-400 group">
       <button onClick={onOpen} className="block w-full text-left">
         <div className="aspect-[4/5] bg-stone-100 flex items-center justify-center overflow-hidden">
           {l.image_url ? <img src={l.image_url} alt={l.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" /> : <span className="font-black uppercase tracking-[-0.01em] text-stone-300 text-xl px-4 text-center leading-tight">{l.brand}</span>}
