@@ -55,6 +55,7 @@ interface Store {
   updateProfile: (name: string, type: AccountType) => Promise<void>
   sendEmailCode: (email: string) => Promise<{ error: string | null; localCode?: string }>
   verifyEmailCode: (email: string, code: string) => Promise<string | null>
+  uploadPhoto: (file: File) => Promise<string | null>
 }
 
 const Ctx = createContext<Store | null>(null)
@@ -300,6 +301,19 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     db.sessionUserId = prof.id; persistLocal(); return null
   }, [refresh, persistLocal])
 
+  const uploadPhoto = useCallback(async (file: File) => {
+    if (supabase) {
+      const safe = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
+      const path = `${user?.id || 'anon'}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safe}`
+      const { error } = await supabase.storage.from('listing-images').upload(path, file, { upsert: true })
+      if (error) return null
+      const { data } = supabase.storage.from('listing-images').getPublicUrl(path)
+      return data.publicUrl
+    }
+    // Local fallback only: keep the photo on this device as a data URL.
+    return await new Promise<string | null>(res => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => res(null); r.readAsDataURL(file) })
+  }, [user])
+
   const updateProfile = useCallback(async (name: string, type: AccountType) => {
     if (!user) return
     if (supabase) { await supabase.from('profiles').update({ display_name: name, account_type: type }).eq('id', user.id); await refresh(); return }
@@ -311,8 +325,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const db = dbRef.current; const p = db.profiles.find(x => x.id === profileId); if (p) p.banned = banned; persistLocal()
   }, [refresh, persistLocal])
 
-  const value = useMemo<Store>(() => ({ user, listings, orders, offers, threads, messages, verification, wishlist, profiles, loading, signUp, signIn, signInWithGoogle, signOut, refresh, addListing, removeListing, buyNow, makeOffer, respondOffer, startThread, sendMessage, toggleWishlist, reviewVerification, setBanned, updateProfile, sendEmailCode, verifyEmailCode }),
-    [user, listings, orders, offers, threads, messages, verification, wishlist, profiles, loading, signUp, signIn, signInWithGoogle, signOut, refresh, addListing, removeListing, buyNow, makeOffer, respondOffer, startThread, sendMessage, toggleWishlist, reviewVerification, setBanned, updateProfile, sendEmailCode, verifyEmailCode])
+  const value = useMemo<Store>(() => ({ user, listings, orders, offers, threads, messages, verification, wishlist, profiles, loading, signUp, signIn, signInWithGoogle, signOut, refresh, addListing, removeListing, buyNow, makeOffer, respondOffer, startThread, sendMessage, toggleWishlist, reviewVerification, setBanned, updateProfile, sendEmailCode, verifyEmailCode, uploadPhoto }),
+    [user, listings, orders, offers, threads, messages, verification, wishlist, profiles, loading, signUp, signIn, signInWithGoogle, signOut, refresh, addListing, removeListing, buyNow, makeOffer, respondOffer, startThread, sendMessage, toggleWishlist, reviewVerification, setBanned, updateProfile, sendEmailCode, verifyEmailCode, uploadPhoto])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
